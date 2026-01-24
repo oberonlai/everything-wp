@@ -1,0 +1,122 @@
+<?php
+/**
+ * Plugin Bootstrap
+ *
+ * Handles plugin initialization, hooks registration, and dependency loading.
+ *
+ * @package {{NAMESPACE}}
+ */
+
+namespace {{NAMESPACE}};
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Bootstrap class.
+ *
+ * Main plugin class that initializes the plugin.
+ */
+class Bootstrap {
+
+	/**
+	 * Plugin version.
+	 *
+	 * @var string
+	 */
+	const VERSION = '{{PLUGIN_VERSION}}';
+
+	/**
+	 * Singleton instance.
+	 *
+	 * @var Bootstrap|null
+	 */
+	private static ?Bootstrap $instance = null;
+
+	/**
+	 * Get singleton instance.
+	 *
+	 * @return Bootstrap
+	 */
+	public static function get_instance(): Bootstrap {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	/**
+	 * Constructor.
+	 *
+	 * Private to enforce singleton pattern.
+	 */
+	private function __construct() {
+		$this->init_hooks();
+	}
+
+	/**
+	 * Initialize hooks.
+	 *
+	 * @return void
+	 */
+	private function init_hooks(): void {
+		// Load text domain for translations.
+		add_action( 'init', array( $this, 'load_textdomain' ) );
+
+		// Initialize plugin components.
+		add_action( 'plugins_loaded', array( $this, 'init' ) );
+
+		// Admin-specific hooks.
+		if ( is_admin() ) {
+			add_action( 'admin_init', array( $this, 'admin_init' ) );
+		}
+	}
+
+	/**
+	 * Load plugin text domain.
+	 *
+	 * @return void
+	 */
+	public function load_textdomain(): void {
+		load_plugin_textdomain(
+			'{{TEXT_DOMAIN}}',
+			false,
+			dirname( plugin_basename( {{PLUGIN_PREFIX}}_PLUGIN_FILE ) ) . '/languages'
+		);
+	}
+
+	/**
+	 * Initialize plugin.
+	 *
+	 * This method is called on 'plugins_loaded' hook.
+	 * Add your plugin initialization code here.
+	 *
+	 * @return void
+	 */
+	public function init(): void {
+		// Initialize your plugin components here.
+	}
+
+	/**
+	 * Admin initialization.
+	 *
+	 * This method is called on 'admin_init' hook.
+	 * Add your admin-specific initialization code here.
+	 *
+	 * @return void
+	 */
+	public function admin_init(): void {
+		// Initialize admin components here.
+	}
+
+	/**
+	 * Get plugin version.
+	 *
+	 * @return string
+	 */
+	public function get_version(): string {
+		return self::VERSION;
+	}
+}

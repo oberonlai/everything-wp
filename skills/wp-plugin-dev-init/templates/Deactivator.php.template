@@ -1,0 +1,75 @@
+<?php
+/**
+ * Plugin Deactivator
+ *
+ * Handles plugin deactivation tasks.
+ *
+ * @package {{NAMESPACE}}
+ */
+
+namespace {{NAMESPACE}};
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Deactivator class.
+ *
+ * This class handles all tasks that need to run during plugin deactivation.
+ */
+class Deactivator {
+
+	/**
+	 * Deactivate the plugin.
+	 *
+	 * This method is called when the plugin is deactivated.
+	 * Add your deactivation logic here, such as:
+	 * - Clearing scheduled cron jobs
+	 * - Flushing rewrite rules
+	 * - Cleaning up transients
+	 *
+	 * Note: Do NOT delete database tables or options here.
+	 * Users may want to reactivate the plugin later.
+	 * Use an uninstall.php file for complete cleanup.
+	 *
+	 * @return void
+	 */
+	public static function deactivate(): void {
+		// Clear scheduled cron jobs.
+		self::clear_scheduled_events();
+
+		// Flush rewrite rules.
+		flush_rewrite_rules();
+
+		// Clear transients.
+		self::clear_transients();
+
+		// Trigger deactivation hook for other plugins/themes to hook into.
+		do_action( '{{PLUGIN_SLUG}}_deactivated' );
+	}
+
+	/**
+	 * Clear scheduled cron events.
+	 *
+	 * @return void
+	 */
+	private static function clear_scheduled_events(): void {
+		// Example: Clear scheduled cron jobs.
+		// $timestamp = wp_next_scheduled( '{{PLUGIN_SLUG}}_daily_cron' );
+		// if ( $timestamp ) {
+		//     wp_unschedule_event( $timestamp, '{{PLUGIN_SLUG}}_daily_cron' );
+		// }
+	}
+
+	/**
+	 * Clear plugin transients.
+	 *
+	 * @return void
+	 */
+	private static function clear_transients(): void {
+		// Example: Delete plugin transients.
+		// delete_transient( '{{PLUGIN_SLUG}}_cache' );
+	}
+}

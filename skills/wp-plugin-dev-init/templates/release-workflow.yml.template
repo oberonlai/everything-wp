@@ -1,0 +1,145 @@
+name: Test and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.2', '8.0', '7.4']
+    services:
+      database:
+        image: mysql:latest
+        env:
+          MYSQL_DATABASE: wordpress_tests
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: phpunit-polyfills:1.1
+
+      - name: Install dependencies
+        run: composer install
+
+      - name: Setup tests
+        run: bash bin/install-wp-tests.sh wordpress_tests root root 127.0.0.1 latest true
+
+      - name: Run tests
+        run: composer test
+
+  release:
+    name: Build and Release
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+
+      - name: Get plugin version
+        id: version
+        run: |
+          VERSION=$(grep "Version:" *.php | head -1 | awk '{print $2}' | tr -d '\r')
+          # Add v prefix if not present
+          if [[ ! $VERSION =~ ^v ]]; then
+            VERSION="v${VERSION}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Plugin Version: ${VERSION}"
+
+      - name: Install production dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Create build directory
+        run: |
+          mkdir -p build/{{PLUGIN_NAME}}
+          
+      - name: Copy plugin files
+        run: |
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.gitignore' \
+            --exclude='.phpcs.xml.dist' \
+            --exclude='.phpunit.result.cache' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='bin' \
+            --exclude='build' \
+            --exclude='composer.json' \
+            --exclude='composer.lock' \
+            --exclude='phpunit.xml.dist' \
+            --exclude='phpunit.xml' \
+            --exclude='*.sh' \
+            --exclude='CLAUDE.md' \
+            --exclude='TESTING.md' \
+            --exclude='RELEASE.md' \
+            --exclude='.claude' \
+            --exclude='.kiro' \
+            --exclude='.tinkersan' \
+            --exclude='.playwright-mcp' \
+            --exclude='scripts' \
+            --exclude='.agent' \
+            . build/{{PLUGIN_NAME}}/
+
+      - name: Create ZIP file
+        run: |
+          cd build
+          zip -r {{PLUGIN_NAME}}-${{ steps.version.outputs.version }}.zip {{PLUGIN_NAME}}
+          cd ..
+          
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s" --no-merges)
+          else
+            CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+          fi
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.version.outputs.version }}
+          body: |
+            ## 🎉 Version ${{ steps.version.outputs.version }}
+            
+            ### 📝 Changes
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ### 📦 Installation
+            1. Download `{{PLUGIN_NAME}}-${{ steps.version.outputs.version }}.zip` below
+            2. Go to WordPress Admin > Plugins > Add New > Upload Plugin
+            3. Select the downloaded ZIP file and install
+            4. Activate the plugin
+            
+            ### ✅ Included Dependencies
+            - Production dependencies only (no dev tools)
+          files: |
+            build/{{PLUGIN_NAME}}-${{ steps.version.outputs.version }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

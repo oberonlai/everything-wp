@@ -1,0 +1,120 @@
+<?php
+/**
+ * WordPress Plugin Build Script
+ * 
+ * This script creates a release version with production dependencies
+ */
+
+// Color output
+define('GREEN', "\033[0;32m");
+define('BLUE', "\033[0;34m");
+define('RED', "\033[0;31m");
+define('NC', "\033[0m"); // No Color
+
+echo BLUE . "========================================" . NC . PHP_EOL;
+echo BLUE . "Building release version..." . NC . PHP_EOL;
+echo BLUE . "========================================" . NC . PHP_EOL;
+
+// Get plugin information
+$pluginSlug = '{{PLUGIN_SLUG}}';
+$pluginName = '{{PLUGIN_NAME}}';
+$buildDir = 'build';
+$tempDir = "{$buildDir}/{$pluginName}";
+
+// Get version from main plugin file
+$mainFile = glob('*.php');
+foreach ($mainFile as $file) {
+    $content = file_get_contents($file);
+    if (preg_match('/Plugin Name:/i', $content)) {
+        if (preg_match('/Version:\s*(.+)/', $content, $matches)) {
+            $version = trim($matches[1]);
+            // Add v prefix if not present
+            $version = (strpos($version, 'v') === 0) ? $version : 'v' . $version;
+            break;
+        }
+    }
+}
+
+if (!isset($version)) {
+    $version = 'v1.0.0';
+}
+
+echo GREEN . "Plugin Name:" . NC . " {$pluginName}" . PHP_EOL;
+echo GREEN . "Version:" . NC . " {$version}" . PHP_EOL;
+echo PHP_EOL;
+
+// Clean old build directory
+echo BLUE . "Cleaning old build files..." . NC . PHP_EOL;
+if (is_dir($buildDir)) {
+    exec("rm -rf {$buildDir}");
+}
+mkdir($buildDir, 0755, true);
+mkdir($tempDir, 0755, true);
+
+// Files and directories to exclude
+$excludes = [
+    '.git',
+    '.github',
+    '.gitignore',
+    '.phpcs.xml.dist',
+    '.phpunit.result.cache',
+    'node_modules',
+    'tests',
+    'bin',
+    'build',
+    'vendor',
+    'composer.json',
+    'composer.lock',
+    'phpunit.xml.dist',
+    'phpunit.xml',
+    '*.sh',
+    'CLAUDE.md',
+    'TESTING.md',
+    'RELEASE.md',
+    '.claude',
+    '.kiro',
+    '.tinkersan',
+    '.playwright-mcp',
+    'scripts',
+    '.agent',
+];
+
+// Build rsync exclude parameters
+$excludeParams = array_map(function($item) {
+    return "--exclude='{$item}'";
+}, $excludes);
+$excludeString = implode(' ', $excludeParams);
+
+// Copy plugin files
+echo BLUE . "Copying plugin files..." . NC . PHP_EOL;
+exec("rsync -av {$excludeString} . {$tempDir}/");
+
+// Install production dependencies
+echo BLUE . "Installing production dependencies..." . NC . PHP_EOL;
+exec("cd {$tempDir} && composer install --no-dev --optimize-autoloader --no-interaction");
+
+// Remove unnecessary Composer files
+echo BLUE . "Cleaning Composer files..." . NC . PHP_EOL;
+@unlink("{$tempDir}/composer.json");
+@unlink("{$tempDir}/composer.lock");
+
+// Create ZIP file
+$zipFile = "{$buildDir}/{$pluginName}-{$version}.zip";
+echo BLUE . "Creating ZIP file..." . NC . PHP_EOL;
+exec("cd {$buildDir} && zip -r {$pluginName}-{$version}.zip {$pluginName} -q");
+
+// Clean temp directory
+echo BLUE . "Cleaning temp files..." . NC . PHP_EOL;
+exec("rm -rf {$tempDir}");
+
+// Get file size
+$fileSize = filesize($zipFile);
+$fileSizeHuman = round($fileSize / 1024 / 1024, 2) . 'MB';
+
+echo PHP_EOL;
+echo GREEN . "========================================" . NC . PHP_EOL;
+echo GREEN . "✓ Build complete!" . NC . PHP_EOL;
+echo GREEN . "========================================" . NC . PHP_EOL;
+echo GREEN . "File location:" . NC . " {$zipFile}" . PHP_EOL;
+echo GREEN . "File size:" . NC . " {$fileSizeHuman}" . PHP_EOL;
+echo PHP_EOL;
