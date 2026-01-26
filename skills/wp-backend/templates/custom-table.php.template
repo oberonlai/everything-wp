@@ -1,0 +1,536 @@
+<?php
+/**
+ * Custom Table Template
+ *
+ * This template generates two files:
+ * 1. {TableName}_Table.php - Database table creation and management
+ * 2. {TableName}_Repository.php - Repository pattern for CRUD operations
+ *
+ * @package {{NAMESPACE}}
+ */
+
+// ============================================================================
+// FILE 1: src/Database/{{CLASS_NAME}}.php
+// ============================================================================
+
+<?php
+/**
+ * {{CLASS_NAME}} - Custom Database Table
+ *
+ * Handles creation, updates, and operations for the {{TABLE_NAME}} table.
+ *
+ * @package {{NAMESPACE}}\Database
+ */
+
+namespace {{NAMESPACE}}\Database;
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * {{CLASS_NAME}} class.
+ *
+ * Manages the {{TABLE_NAME}} custom database table.
+ */
+class {{CLASS_NAME}} {
+
+	/**
+	 * Table version.
+	 *
+	 * Increment this when making schema changes to trigger dbDelta().
+	 *
+	 * @var string
+	 */
+	const VERSION = '{{TABLE_VERSION}}';
+
+	/**
+	 * Table name without prefix.
+	 *
+	 * @var string
+	 */
+	const TABLE_NAME = '{{TABLE_NAME}}';
+
+	/**
+	 * Option name for storing table version.
+	 *
+	 * @var string
+	 */
+	const VERSION_OPTION = '{{VERSION_OPTION_NAME}}';
+
+	/**
+	 * Get the full table name with WordPress prefix.
+	 *
+	 * @return string Full table name.
+	 */
+	public static function get_table_name(): string {
+		global $wpdb;
+		return $wpdb->prefix . '{{PLUGIN_PREFIX}}_' . self::TABLE_NAME;
+	}
+
+	/**
+	 * Create the database table.
+	 *
+	 * Uses dbDelta() for safe table creation and updates.
+	 * CRITICAL: dbDelta() requires specific SQL formatting.
+	 *
+	 * @return void
+	 */
+	public static function create_table(): void {
+		global $wpdb;
+
+		$table_name      = self::get_table_name();
+		$charset_collate = $wpdb->get_charset_collate();
+
+		// CRITICAL: dbDelta() formatting rules:
+		// 1. TWO spaces after PRIMARY KEY.
+		// 2. Space after KEY name before parenthesis.
+		// 3. Each column on its own line.
+		// 4. No trailing comma before closing parenthesis.
+		$sql = "CREATE TABLE $table_name (
+{{COLUMN_DEFINITIONS}}
+{{INDEX_DEFINITIONS}}
+		) $charset_collate;";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Check and update table if version has changed.
+	 *
+	 * Call this on 'plugins_loaded' hook to handle schema updates.
+	 *
+	 * @return void
+	 */
+	public static function maybe_update_table(): void {
+		$installed_version = get_option( self::VERSION_OPTION, '0' );
+
+		if ( version_compare( $installed_version, self::VERSION, '<' ) ) {
+			self::create_table();
+			update_option( self::VERSION_OPTION, self::VERSION );
+		}
+	}
+
+	/**
+	 * Drop the database table.
+	 *
+	 * WARNING: This permanently deletes the table and all data.
+	 * Only call from uninstall.php.
+	 *
+	 * @return void
+	 */
+	public static function drop_table(): void {
+		global $wpdb;
+
+		$table_name = self::get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$wpdb->query( "DROP TABLE IF EXISTS $table_name" );
+		delete_option( self::VERSION_OPTION );
+	}
+
+	/**
+	 * Check if table exists.
+	 *
+	 * @return bool True if table exists.
+	 */
+	public static function table_exists(): bool {
+		global $wpdb;
+
+		$table_name = self::get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$result = $wpdb->get_var(
+			$wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name )
+		);
+
+		return $result === $table_name;
+	}
+
+{{MULTISITE_METHODS}}
+}
+
+// ============================================================================
+// FILE 2: src/Repository/{{REPOSITORY_CLASS}}.php
+// ============================================================================
+
+<?php
+/**
+ * {{REPOSITORY_CLASS}} - Repository for {{TABLE_NAME}} table
+ *
+ * Provides CRUD operations for the {{TABLE_NAME}} table.
+ *
+ * @package {{NAMESPACE}}\Repository
+ */
+
+namespace {{NAMESPACE}}\Repository;
+
+use {{NAMESPACE}}\Database\{{CLASS_NAME}};
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * {{REPOSITORY_CLASS}} class.
+ *
+ * Repository pattern implementation for {{TABLE_NAME}} table.
+ */
+class {{REPOSITORY_CLASS}} {
+
+	/**
+	 * Cache group for this repository.
+	 *
+	 * @var string
+	 */
+	private const CACHE_GROUP = '{{PLUGIN_PREFIX}}_{{TABLE_NAME}}';
+
+	/**
+	 * Cache expiration in seconds.
+	 *
+	 * @var int
+	 */
+	private const CACHE_EXPIRATION = HOUR_IN_SECONDS;
+
+	/**
+	 * Get table name.
+	 *
+	 * @return string Table name.
+	 */
+	private function get_table_name(): string {
+		return {{CLASS_NAME}}::get_table_name();
+	}
+
+	/**
+	 * Get a single row by ID.
+	 *
+	 * @param int $id Row ID.
+	 * @return object|null Row object or null if not found.
+	 */
+	public function get( int $id ): ?object {
+		{{CACHE_GET_START}}
+		global $wpdb;
+
+		$table_name = $this->get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$row = $wpdb->get_row(
+			$wpdb->prepare( "SELECT * FROM $table_name WHERE id = %d", $id )
+		);
+
+		if ( null === $row ) {
+			return null;
+		}
+
+		{{CACHE_GET_SET}}
+
+		return $row;
+	}
+
+	/**
+	 * Find a single row by conditions.
+	 *
+	 * @param array $where WHERE conditions (column => value).
+	 * @return object|null Row object or null if not found.
+	 */
+	public function find( array $where ): ?object {
+		global $wpdb;
+
+		$table_name = $this->get_table_name();
+
+		// Build WHERE clause.
+		$conditions   = array();
+		$where_values = array();
+
+		foreach ( $where as $column => $value ) {
+			$format         = $this->get_format_for_column( $column );
+			$conditions[]   = "$column = $format";
+			$where_values[] = $value;
+		}
+
+		$where_sql = implode( ' AND ', $conditions );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM $table_name WHERE $where_sql LIMIT 1",
+				$where_values
+			)
+		);
+	}
+
+	/**
+	 * Get multiple rows with conditions.
+	 *
+	 * @param array  $where   WHERE conditions (column => value).
+	 * @param string $orderby Column to order by.
+	 * @param string $order   Order direction (ASC or DESC).
+	 * @param int    $limit   Number of rows to return.
+	 * @param int    $offset  Offset for pagination.
+	 * @return array Array of row objects.
+	 */
+	public function get_all(
+		array $where = array(),
+		string $orderby = 'id',
+		string $order = 'DESC',
+		int $limit = 100,
+		int $offset = 0
+	): array {
+		global $wpdb;
+
+		$table_name = $this->get_table_name();
+
+		// Build WHERE clause.
+		$where_sql    = '';
+		$where_values = array();
+
+		if ( ! empty( $where ) ) {
+			$conditions = array();
+			foreach ( $where as $column => $value ) {
+				$format         = $this->get_format_for_column( $column );
+				$conditions[]   = "$column = $format";
+				$where_values[] = $value;
+			}
+			$where_sql = 'WHERE ' . implode( ' AND ', $conditions );
+		}
+
+		// Sanitize orderby and order.
+		$allowed_columns = $this->get_allowed_columns();
+		if ( ! in_array( $orderby, $allowed_columns, true ) ) {
+			$orderby = 'id';
+		}
+		$order = ( 'ASC' === strtoupper( $order ) ) ? 'ASC' : 'DESC';
+
+		// Build query.
+		$sql = "SELECT * FROM $table_name $where_sql ORDER BY $orderby $order LIMIT %d OFFSET %d";
+
+		$where_values[] = $limit;
+		$where_values[] = $offset;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return $wpdb->get_results(
+			$wpdb->prepare( $sql, $where_values )
+		);
+	}
+
+	/**
+	 * Create a new row.
+	 *
+	 * @param array $data Column data as associative array.
+	 * @return int|false Insert ID on success, false on failure.
+	 */
+	public function create( array $data ) {
+		global $wpdb;
+
+		$table_name = $this->get_table_name();
+		$formats    = $this->get_column_formats( $data );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+		$result = $wpdb->insert( $table_name, $data, $formats );
+
+		if ( false !== $result ) {
+			return $wpdb->insert_id;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Update a row by ID.
+	 *
+	 * @param int   $id   Row ID.
+	 * @param array $data Column data to update.
+	 * @return int|false Number of rows updated, false on error.
+	 */
+	public function update( int $id, array $data ) {
+		global $wpdb;
+
+		$table_name    = $this->get_table_name();
+		$data_formats  = $this->get_column_formats( $data );
+		$where_formats = array( '%d' );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$result = $wpdb->update(
+			$table_name,
+			$data,
+			array( 'id' => $id ),
+			$data_formats,
+			$where_formats
+		);
+
+		// Clear cache if enabled.
+		{{CACHE_DELETE}}
+
+		return $result;
+	}
+
+	/**
+	 * Delete a row by ID.
+	 *
+	 * @param int $id Row ID.
+	 * @return int|false Number of rows deleted, false on error.
+	 */
+	public function delete( int $id ) {
+		global $wpdb;
+
+		$table_name = $this->get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$result = $wpdb->delete(
+			$table_name,
+			array( 'id' => $id ),
+			array( '%d' )
+		);
+
+		// Clear cache if enabled.
+		{{CACHE_DELETE}}
+
+		return $result;
+	}
+
+	/**
+	 * Count rows with conditions.
+	 *
+	 * @param array $where WHERE conditions.
+	 * @return int Number of matching rows.
+	 */
+	public function count( array $where = array() ): int {
+		global $wpdb;
+
+		$table_name = $this->get_table_name();
+
+		// Build WHERE clause.
+		$where_sql    = '';
+		$where_values = array();
+
+		if ( ! empty( $where ) ) {
+			$conditions = array();
+			foreach ( $where as $column => $value ) {
+				$format         = $this->get_format_for_column( $column );
+				$conditions[]   = "$column = $format";
+				$where_values[] = $value;
+			}
+			$where_sql = 'WHERE ' . implode( ' AND ', $conditions );
+		}
+
+		$sql = "SELECT COUNT(*) FROM $table_name $where_sql";
+
+		if ( ! empty( $where_values ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			return (int) $wpdb->get_var( $wpdb->prepare( $sql, $where_values ) );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (int) $wpdb->get_var( $sql );
+	}
+
+	/**
+	 * Get the format placeholder for a column.
+	 *
+	 * @param string $column Column name.
+	 * @return string Format placeholder (%s, %d, or %f).
+	 */
+	private function get_format_for_column( string $column ): string {
+		$int_columns   = array( {{INT_COLUMNS}} );
+		$float_columns = array( {{FLOAT_COLUMNS}} );
+
+		if ( in_array( $column, $int_columns, true ) ) {
+			return '%d';
+		}
+
+		if ( in_array( $column, $float_columns, true ) ) {
+			return '%f';
+		}
+
+		return '%s';
+	}
+
+	/**
+	 * Get column formats for an array of data.
+	 *
+	 * @param array $data Associative array of column => value.
+	 * @return array Array of format placeholders.
+	 */
+	private function get_column_formats( array $data ): array {
+		$formats = array();
+		foreach ( array_keys( $data ) as $column ) {
+			$formats[] = $this->get_format_for_column( $column );
+		}
+		return $formats;
+	}
+
+	/**
+	 * Get list of allowed columns for queries.
+	 *
+	 * @return array Array of column names.
+	 */
+	private function get_allowed_columns(): array {
+		return array( {{ALLOWED_COLUMNS}} );
+	}
+}
+
+// ============================================================================
+// MULTISITE METHODS (insert into Table class when multisite is enabled)
+// ============================================================================
+
+	/**
+	 * Create table for a new multisite blog.
+	 *
+	 * Hook this to 'wpmu_new_blog' action.
+	 *
+	 * @param int $blog_id New blog ID.
+	 * @return void
+	 */
+	public static function create_table_for_new_site( int $blog_id ): void {
+		if ( is_plugin_active_for_network( plugin_basename( {{PLUGIN_CONST}}_PLUGIN_FILE ) ) ) {
+			switch_to_blog( $blog_id );
+			self::create_table();
+			update_option( self::VERSION_OPTION, self::VERSION );
+			restore_current_blog();
+		}
+	}
+
+	/**
+	 * Drop tables for all sites in multisite.
+	 *
+	 * Call this from uninstall.php for multisite cleanup.
+	 *
+	 * @return void
+	 */
+	public static function drop_table_for_all_sites(): void {
+		global $wpdb;
+
+		if ( is_multisite() ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$blog_ids = $wpdb->get_col( "SELECT blog_id FROM $wpdb->blogs" );
+
+			foreach ( $blog_ids as $blog_id ) {
+				switch_to_blog( $blog_id );
+				self::drop_table();
+				restore_current_blog();
+			}
+		} else {
+			self::drop_table();
+		}
+	}
+
+// ============================================================================
+// CACHE SNIPPETS (insert when caching is enabled)
+// ============================================================================
+
+// CACHE_GET_START:
+		$cache_key = 'item_' . $id;
+		$cached    = wp_cache_get( $cache_key, self::CACHE_GROUP );
+
+		if ( false !== $cached ) {
+			return $cached;
+		}
+
+// CACHE_GET_SET:
+		wp_cache_set( $cache_key, $row, self::CACHE_GROUP, self::CACHE_EXPIRATION );
+
+// CACHE_DELETE:
+		wp_cache_delete( 'item_' . $id, self::CACHE_GROUP );

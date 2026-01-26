@@ -1,0 +1,358 @@
+<?php
+/**
+ * {{CLASS_NAME}} - AJAX Handler
+ *
+ * Handles AJAX request for {{ACTION_NAME}} action.
+ *
+ * @package {{NAMESPACE}}\Ajax
+ */
+
+namespace {{NAMESPACE}}\Ajax;
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * {{CLASS_NAME}} class.
+ *
+ * AJAX handler for {{ACTION_NAME}}.
+ */
+class {{CLASS_NAME}} {
+
+	/**
+	 * AJAX action name.
+	 *
+	 * @var string
+	 */
+	public const ACTION = '{{PLUGIN_PREFIX}}_{{ACTION_NAME}}';
+
+	/**
+	 * Nonce action for verification.
+	 *
+	 * @var string
+	 */
+	private const NONCE_ACTION = '{{NONCE_ACTION}}';
+
+	/**
+	 * Register AJAX hooks.
+	 *
+	 * @return void
+	 */
+	public static function register(): void {
+{{AJAX_HOOKS}}
+	}
+
+	/**
+	 * Handle the AJAX request.
+	 *
+	 * @return void
+	 */
+	public static function handle(): void {
+		// Verify nonce.
+		if ( ! self::verify_nonce() ) {
+			self::send_error(
+				__( 'Security check failed.', '{{TEXT_DOMAIN}}' ),
+				'invalid_nonce',
+				403
+			);
+		}
+
+		// Check permissions.
+		if ( ! self::check_permissions() ) {
+			self::send_error(
+				__( 'You do not have permission to perform this action.', '{{TEXT_DOMAIN}}' ),
+				'insufficient_permissions',
+				403
+			);
+		}
+
+		// Get and validate parameters.
+		$params = self::get_parameters();
+		$errors = self::validate( $params );
+
+		if ( ! empty( $errors ) ) {
+			self::send_error(
+				__( 'Validation failed.', '{{TEXT_DOMAIN}}' ),
+				'validation_error',
+				400,
+				array( 'errors' => $errors )
+			);
+		}
+
+		// Process the request.
+		$result = self::process( $params );
+
+		if ( is_wp_error( $result ) ) {
+			self::send_error(
+				$result->get_error_message(),
+				$result->get_error_code(),
+				400
+			);
+		}
+
+		self::send_success( $result );
+	}
+
+	/**
+	 * Verify nonce.
+	 *
+	 * @return bool True if nonce is valid.
+	 */
+	private static function verify_nonce(): bool {
+		$nonce = ( isset( $_POST['nonce'] ) ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+
+		return wp_verify_nonce( $nonce, self::NONCE_ACTION );
+	}
+
+	/**
+	 * Check user permissions.
+	 *
+	 * @return bool True if user has permission.
+	 */
+	private static function check_permissions(): bool {
+{{PERMISSION_CHECK}}
+	}
+
+	/**
+	 * Get and sanitize request parameters.
+	 *
+	 * @return array Sanitized parameters.
+	 */
+	private static function get_parameters(): array {
+		$params = array();
+
+{{PARAMETER_SANITIZATION}}
+
+		return $params;
+	}
+
+	/**
+	 * Validate parameters.
+	 *
+	 * @param array $params Parameters to validate.
+	 * @return array Validation errors (empty if valid).
+	 */
+	private static function validate( array $params ): array {
+		$errors = array();
+
+{{PARAMETER_VALIDATION}}
+
+		return $errors;
+	}
+
+	/**
+	 * Process the request.
+	 *
+	 * @param array $params Validated parameters.
+	 * @return array|\WP_Error Result data or WP_Error on failure.
+	 */
+	private static function process( array $params ) {
+		// TODO: Implement your business logic here.
+		// Example:
+		// $repository = new \{{NAMESPACE}}\Repository\{{REPOSITORY_CLASS}}();
+		// return $repository->create( $params );
+
+		return array(
+			'message' => __( 'Request processed successfully.', '{{TEXT_DOMAIN}}' ),
+			'data'    => $params,
+		);
+	}
+
+	/**
+	 * Send success response.
+	 *
+	 * @param array $data Response data.
+	 * @return void
+	 */
+	private static function send_success( array $data ): void {
+		wp_send_json_success( $data );
+	}
+
+	/**
+	 * Send error response.
+	 *
+	 * @param string $message    Error message.
+	 * @param string $code       Error code.
+	 * @param int    $status     HTTP status code.
+	 * @param array  $extra_data Additional data.
+	 * @return void
+	 */
+	private static function send_error(
+		string $message,
+		string $code = 'error',
+		int $status = 400,
+		array $extra_data = array()
+	): void {
+		$data = array_merge(
+			array(
+				'code'    => $code,
+				'message' => $message,
+			),
+			$extra_data
+		);
+
+		wp_send_json_error( $data, $status );
+	}
+
+	/**
+	 * Get nonce for JavaScript.
+	 *
+	 * @return string Nonce value.
+	 */
+	public static function get_nonce(): string {
+		return wp_create_nonce( self::NONCE_ACTION );
+	}
+
+	/**
+	 * Get localization data for JavaScript.
+	 *
+	 * @return array Localization data.
+	 */
+	public static function get_localize_data(): array {
+		return array(
+			'ajax_url' => admin_url( 'admin-ajax.php' ),
+			'action'   => self::ACTION,
+			'nonce'    => self::get_nonce(),
+		);
+	}
+}
+
+// ============================================================================
+// AJAX HOOKS TEMPLATES
+// ============================================================================
+
+// LOGGED_IN_ONLY:
+		add_action( 'wp_ajax_' . self::ACTION, array( __CLASS__, 'handle' ) );
+
+// LOGGED_IN_AND_GUESTS:
+		add_action( 'wp_ajax_' . self::ACTION, array( __CLASS__, 'handle' ) );
+		add_action( 'wp_ajax_nopriv_' . self::ACTION, array( __CLASS__, 'handle' ) );
+
+// GUESTS_ONLY:
+		add_action( 'wp_ajax_nopriv_' . self::ACTION, array( __CLASS__, 'handle' ) );
+
+// ============================================================================
+// PERMISSION CHECK TEMPLATES
+// ============================================================================
+
+// NO_CAPABILITY:
+		// No specific capability required.
+		return true;
+
+// WITH_CAPABILITY:
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
+
+		return current_user_can( '{{CAPABILITY}}' );
+
+// LOGGED_IN_ONLY_CHECK:
+		return is_user_logged_in();
+
+// ============================================================================
+// PARAMETER TEMPLATES
+// ============================================================================
+
+// INTEGER:
+		$params['{{PARAM_NAME}}'] = ( isset( $_POST['{{PARAM_NAME}}'] ) ) ? absint( $_POST['{{PARAM_NAME}}'] ) : 0;
+
+// STRING:
+		$params['{{PARAM_NAME}}'] = ( isset( $_POST['{{PARAM_NAME}}'] ) ) ? sanitize_text_field( wp_unslash( $_POST['{{PARAM_NAME}}'] ) ) : '';
+
+// HTML:
+		$params['{{PARAM_NAME}}'] = ( isset( $_POST['{{PARAM_NAME}}'] ) ) ? wp_kses_post( wp_unslash( $_POST['{{PARAM_NAME}}'] ) ) : '';
+
+// EMAIL:
+		$params['{{PARAM_NAME}}'] = ( isset( $_POST['{{PARAM_NAME}}'] ) ) ? sanitize_email( wp_unslash( $_POST['{{PARAM_NAME}}'] ) ) : '';
+
+// URL:
+		$params['{{PARAM_NAME}}'] = ( isset( $_POST['{{PARAM_NAME}}'] ) ) ? esc_url_raw( wp_unslash( $_POST['{{PARAM_NAME}}'] ) ) : '';
+
+// BOOLEAN:
+		$params['{{PARAM_NAME}}'] = ( isset( $_POST['{{PARAM_NAME}}'] ) ) ? (bool) $_POST['{{PARAM_NAME}}'] : false;
+
+// ARRAY:
+		$params['{{PARAM_NAME}}'] = ( isset( $_POST['{{PARAM_NAME}}'] ) && is_array( $_POST['{{PARAM_NAME}}'] ) ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['{{PARAM_NAME}}'] ) ) : array();
+
+// ============================================================================
+// VALIDATION TEMPLATES
+// ============================================================================
+
+// REQUIRED_STRING:
+		if ( empty( $params['{{PARAM_NAME}}'] ) ) {
+			$errors['{{PARAM_NAME}}'] = __( '{{PARAM_LABEL}} is required.', '{{TEXT_DOMAIN}}' );
+		}
+
+// REQUIRED_INTEGER:
+		if ( 0 === $params['{{PARAM_NAME}}'] ) {
+			$errors['{{PARAM_NAME}}'] = __( '{{PARAM_LABEL}} is required.', '{{TEXT_DOMAIN}}' );
+		}
+
+// VALID_EMAIL:
+		if ( ! empty( $params['{{PARAM_NAME}}'] ) && ! is_email( $params['{{PARAM_NAME}}'] ) ) {
+			$errors['{{PARAM_NAME}}'] = __( 'Please enter a valid email address.', '{{TEXT_DOMAIN}}' );
+		}
+
+// VALID_URL:
+		if ( ! empty( $params['{{PARAM_NAME}}'] ) && ! filter_var( $params['{{PARAM_NAME}}'], FILTER_VALIDATE_URL ) ) {
+			$errors['{{PARAM_NAME}}'] = __( 'Please enter a valid URL.', '{{TEXT_DOMAIN}}' );
+		}
+
+// MIN_LENGTH:
+		if ( strlen( $params['{{PARAM_NAME}}'] ) < {{MIN_LENGTH}} ) {
+			$errors['{{PARAM_NAME}}'] = sprintf(
+				__( '{{PARAM_LABEL}} must be at least %d characters.', '{{TEXT_DOMAIN}}' ),
+				{{MIN_LENGTH}}
+			);
+		}
+
+// IN_ARRAY:
+		$valid_values = array( {{VALID_VALUES}} );
+		if ( ! in_array( $params['{{PARAM_NAME}}'], $valid_values, true ) ) {
+			$errors['{{PARAM_NAME}}'] = __( 'Invalid {{PARAM_LABEL}} value.', '{{TEXT_DOMAIN}}' );
+		}
+
+// ============================================================================
+// JAVASCRIPT EXAMPLE
+// ============================================================================
+
+/**
+ * Example JavaScript for calling this AJAX handler:
+ *
+ * jQuery(document).ready(function($) {
+ *     $('#my-form').on('submit', function(e) {
+ *         e.preventDefault();
+ *
+ *         var formData = {
+ *             action: {{PLUGIN_PREFIX}}_ajax.action,
+ *             nonce: {{PLUGIN_PREFIX}}_ajax.nonce,
+ *             // Add your parameters here.
+ *             {{PARAM_NAME}}: $('#{{PARAM_NAME}}').val()
+ *         };
+ *
+ *         $.ajax({
+ *             url: {{PLUGIN_PREFIX}}_ajax.ajax_url,
+ *             type: 'POST',
+ *             data: formData,
+ *             beforeSend: function() {
+ *                 // Show loading state.
+ *             },
+ *             success: function(response) {
+ *                 if (response.success) {
+ *                     console.log('Success:', response.data);
+ *                 } else {
+ *                     console.error('Error:', response.data.message);
+ *                 }
+ *             },
+ *             error: function(xhr, status, error) {
+ *                 console.error('AJAX Error:', error);
+ *             },
+ *             complete: function() {
+ *                 // Hide loading state.
+ *             }
+ *         });
+ *     });
+ * });
+ */

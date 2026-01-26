@@ -1,0 +1,572 @@
+<?php
+/**
+ * {{CLASS_NAME}} - Frontend Shortcode
+ *
+ * Displays {{PAGE_NAME}} on the frontend.
+ *
+ * @package {{NAMESPACE}}\Frontend
+ */
+
+namespace {{NAMESPACE}}\Frontend;
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * {{CLASS_NAME}} class.
+ *
+ * Shortcode handler for {{PAGE_NAME}}.
+ */
+class {{CLASS_NAME}} {
+
+	/**
+	 * Shortcode tag.
+	 *
+	 * @var string
+	 */
+	public const TAG = '{{SHORTCODE_TAG}}';
+
+	/**
+	 * Nonce action for forms.
+	 *
+	 * @var string
+	 */
+	private const NONCE_ACTION = '{{NONCE_ACTION}}';
+
+	/**
+	 * Whether assets have been enqueued.
+	 *
+	 * @var bool
+	 */
+	private static bool $assets_enqueued = false;
+
+	/**
+	 * Register the shortcode.
+	 *
+	 * @return void
+	 */
+	public static function register(): void {
+		add_shortcode( self::TAG, array( __CLASS__, 'render' ) );
+	}
+
+	/**
+	 * Render the shortcode.
+	 *
+	 * @param array  $atts    Shortcode attributes.
+	 * @param string $content Shortcode content.
+	 * @return string Rendered HTML.
+	 */
+	public static function render( $atts = array(), $content = '' ): string {
+		// Parse attributes.
+		$atts = shortcode_atts( self::get_default_attributes(), $atts, self::TAG );
+
+		// Enqueue assets.
+		self::enqueue_assets();
+
+{{LOGIN_CHECK}}
+
+		// Start output buffering.
+		ob_start();
+
+		// Render the content.
+		self::render_content( $atts );
+
+		return ob_get_clean();
+	}
+
+	/**
+	 * Get default shortcode attributes.
+	 *
+	 * @return array Default attributes.
+	 */
+	private static function get_default_attributes(): array {
+		return array(
+{{DEFAULT_ATTRIBUTES}}
+		);
+	}
+
+	/**
+	 * Enqueue frontend assets.
+	 *
+	 * @return void
+	 */
+	private static function enqueue_assets(): void {
+		if ( self::$assets_enqueued ) {
+			return;
+		}
+
+{{ENQUEUE_ASSETS}}
+
+		self::$assets_enqueued = true;
+	}
+
+	/**
+	 * Render the shortcode content.
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return void
+	 */
+	private static function render_content( array $atts ): void {
+		?>
+		<div class="{{PLUGIN_PREFIX}}-{{SHORTCODE_TAG}}">
+{{CONTENT}}
+		</div>
+		<?php
+	}
+
+{{FORM_METHODS}}
+
+	/**
+	 * Get mock data for development.
+	 *
+	 * @return array Mock data.
+	 */
+	private static function get_mock_data(): array {
+		return array(
+			(object) array(
+				'id'         => 1,
+				'title'      => 'Sample Item 1',
+				'status'     => 'active',
+				'created_at' => current_time( 'mysql' ),
+			),
+			(object) array(
+				'id'         => 2,
+				'title'      => 'Sample Item 2',
+				'status'     => 'pending',
+				'created_at' => current_time( 'mysql' ),
+			),
+		);
+	}
+}
+
+// ============================================================================
+// LOGIN CHECK TEMPLATES
+// ============================================================================
+
+// WITH_LOGIN_CHECK:
+		// Check if user is logged in.
+		if ( ! is_user_logged_in() ) {
+			return sprintf(
+				'<div class="{{PLUGIN_PREFIX}}-login-required">%s <a href="%s">%s</a></div>',
+				esc_html__( 'You must be logged in to access this content.', '{{TEXT_DOMAIN}}' ),
+				esc_url( wp_login_url( get_permalink() ) ),
+				esc_html__( 'Log in', '{{TEXT_DOMAIN}}' )
+			);
+		}
+
+// WITHOUT_LOGIN_CHECK:
+		// No login check required.
+
+// ============================================================================
+// ENQUEUE ASSETS TEMPLATES
+// ============================================================================
+
+// WITH_CSS_AND_JS:
+		wp_enqueue_style(
+			'{{PLUGIN_PREFIX}}-{{SHORTCODE_TAG}}',
+			plugins_url( 'assets/css/{{SHORTCODE_TAG}}.css', {{PLUGIN_CONST}}_PLUGIN_FILE ),
+			array(),
+			{{PLUGIN_CONST}}_VERSION
+		);
+
+		wp_enqueue_script(
+			'{{PLUGIN_PREFIX}}-{{SHORTCODE_TAG}}',
+			plugins_url( 'assets/js/{{SHORTCODE_TAG}}.js', {{PLUGIN_CONST}}_PLUGIN_FILE ),
+			array( 'jquery' ),
+			{{PLUGIN_CONST}}_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'{{PLUGIN_PREFIX}}-{{SHORTCODE_TAG}}',
+			'{{PLUGIN_PREFIX}}_{{SHORTCODE_TAG}}',
+			array(
+				'ajax_url' => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( self::NONCE_ACTION ),
+				'i18n'     => array(
+					'loading' => __( 'Loading...', '{{TEXT_DOMAIN}}' ),
+					'error'   => __( 'An error occurred. Please try again.', '{{TEXT_DOMAIN}}' ),
+					'success' => __( 'Success!', '{{TEXT_DOMAIN}}' ),
+				),
+			)
+		);
+
+// WITH_CSS_ONLY:
+		wp_enqueue_style(
+			'{{PLUGIN_PREFIX}}-{{SHORTCODE_TAG}}',
+			plugins_url( 'assets/css/{{SHORTCODE_TAG}}.css', {{PLUGIN_CONST}}_PLUGIN_FILE ),
+			array(),
+			{{PLUGIN_CONST}}_VERSION
+		);
+
+// NO_ASSETS:
+		// No additional assets required.
+
+// ============================================================================
+// CONTENT TEMPLATES
+// ============================================================================
+
+// SIMPLE_CONTENT:
+			<h2><?php echo esc_html( $atts['title'] ); ?></h2>
+			<div class="{{PLUGIN_PREFIX}}-content">
+				<?php echo wp_kses_post( $atts['content'] ); ?>
+			</div>
+
+// WITH_FORM:
+			<?php self::render_form( $atts ); ?>
+
+// WITH_LIST:
+			<?php self::render_list( $atts ); ?>
+
+// ============================================================================
+// FORM METHOD TEMPLATES
+// ============================================================================
+
+// CONTACT_FORM:
+	/**
+	 * Render the contact form.
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return void
+	 */
+	private static function render_form( array $atts ): void {
+		?>
+		<form id="{{PLUGIN_PREFIX}}-{{SHORTCODE_TAG}}-form" class="{{PLUGIN_PREFIX}}-form" method="post">
+			<?php wp_nonce_field( self::NONCE_ACTION, '{{PLUGIN_PREFIX}}_nonce' ); ?>
+
+{{FORM_FIELDS}}
+
+			<div class="{{PLUGIN_PREFIX}}-form-row {{PLUGIN_PREFIX}}-form-submit">
+				<button type="submit" class="{{PLUGIN_PREFIX}}-button">
+					<?php esc_html_e( 'Submit', '{{TEXT_DOMAIN}}' ); ?>
+				</button>
+			</div>
+
+			<div class="{{PLUGIN_PREFIX}}-form-messages" aria-live="polite"></div>
+		</form>
+		<?php
+	}
+
+// LIST_DISPLAY:
+	/**
+	 * Render the item list.
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return void
+	 */
+	private static function render_list( array $atts ): void {
+		// Get items.
+		// TODO: Replace with your repository call.
+		// $repository = new \{{NAMESPACE}}\Repository\{{REPOSITORY_CLASS}}();
+		// $items = $repository->get_all();
+
+		// Use mock data in development.
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			$items = self::get_mock_data();
+		} else {
+			$items = array();
+		}
+
+		if ( empty( $items ) ) {
+			?>
+			<p class="{{PLUGIN_PREFIX}}-no-items"><?php esc_html_e( 'No items found.', '{{TEXT_DOMAIN}}' ); ?></p>
+			<?php
+			return;
+		}
+
+		?>
+		<ul class="{{PLUGIN_PREFIX}}-list">
+			<?php foreach ( $items as $item ) : ?>
+				<li class="{{PLUGIN_PREFIX}}-list-item">
+					<h3><?php echo esc_html( $item->title ); ?></h3>
+					<span class="{{PLUGIN_PREFIX}}-status status-<?php echo esc_attr( $item->status ); ?>">
+						<?php echo esc_html( $item->status ); ?>
+					</span>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+		<?php
+	}
+
+// ============================================================================
+// FORM FIELD TEMPLATES
+// ============================================================================
+
+// TEXT_FIELD:
+			<div class="{{PLUGIN_PREFIX}}-form-row">
+				<label for="{{FIELD_NAME}}"><?php esc_html_e( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ); ?> {{REQUIRED_MARK}}</label>
+				<input type="text" id="{{FIELD_NAME}}" name="{{FIELD_NAME}}" {{REQUIRED}}>
+			</div>
+
+// EMAIL_FIELD:
+			<div class="{{PLUGIN_PREFIX}}-form-row">
+				<label for="{{FIELD_NAME}}"><?php esc_html_e( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ); ?> {{REQUIRED_MARK}}</label>
+				<input type="email" id="{{FIELD_NAME}}" name="{{FIELD_NAME}}" {{REQUIRED}}>
+			</div>
+
+// TEXTAREA_FIELD:
+			<div class="{{PLUGIN_PREFIX}}-form-row">
+				<label for="{{FIELD_NAME}}"><?php esc_html_e( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ); ?> {{REQUIRED_MARK}}</label>
+				<textarea id="{{FIELD_NAME}}" name="{{FIELD_NAME}}" rows="5" {{REQUIRED}}></textarea>
+			</div>
+
+// SELECT_FIELD:
+			<div class="{{PLUGIN_PREFIX}}-form-row">
+				<label for="{{FIELD_NAME}}"><?php esc_html_e( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ); ?> {{REQUIRED_MARK}}</label>
+				<select id="{{FIELD_NAME}}" name="{{FIELD_NAME}}" {{REQUIRED}}>
+					<option value=""><?php esc_html_e( 'Select...', '{{TEXT_DOMAIN}}' ); ?></option>
+{{SELECT_OPTIONS}}
+				</select>
+			</div>
+
+// CHECKBOX_FIELD:
+			<div class="{{PLUGIN_PREFIX}}-form-row {{PLUGIN_PREFIX}}-form-checkbox">
+				<label>
+					<input type="checkbox" id="{{FIELD_NAME}}" name="{{FIELD_NAME}}" value="1" {{REQUIRED}}>
+					<?php esc_html_e( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ); ?>
+				</label>
+			</div>
+
+// FILE_FIELD:
+			<div class="{{PLUGIN_PREFIX}}-form-row">
+				<label for="{{FIELD_NAME}}"><?php esc_html_e( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ); ?> {{REQUIRED_MARK}}</label>
+				<input type="file" id="{{FIELD_NAME}}" name="{{FIELD_NAME}}" accept="{{ACCEPT_TYPES}}" {{REQUIRED}}>
+			</div>
+
+// ============================================================================
+// DEFAULT ATTRIBUTES TEMPLATES
+// ============================================================================
+
+// BASIC_ATTRIBUTES:
+			'title'   => '',
+			'class'   => '',
+			'id'      => '',
+
+// WITH_PAGINATION:
+			'title'    => '',
+			'class'    => '',
+			'id'       => '',
+			'per_page' => 10,
+			'page'     => 1,
+
+// ============================================================================
+// CSS FILE TEMPLATE (assets/css/{{SHORTCODE_TAG}}.css)
+// ============================================================================
+
+/**
+ * {{PAGE_NAME}} Styles
+ *
+ * @package {{NAMESPACE}}
+ */
+
+.{{PLUGIN_PREFIX}}-{{SHORTCODE_TAG}} {
+	max-width: 600px;
+	margin: 0 auto;
+	padding: 20px;
+}
+
+/* Form Styles */
+.{{PLUGIN_PREFIX}}-form {
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+}
+
+.{{PLUGIN_PREFIX}}-form-row {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.{{PLUGIN_PREFIX}}-form-row label {
+	font-weight: 600;
+}
+
+.{{PLUGIN_PREFIX}}-form-row input[type="text"],
+.{{PLUGIN_PREFIX}}-form-row input[type="email"],
+.{{PLUGIN_PREFIX}}-form-row input[type="url"],
+.{{PLUGIN_PREFIX}}-form-row textarea,
+.{{PLUGIN_PREFIX}}-form-row select {
+	padding: 10px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 16px;
+}
+
+.{{PLUGIN_PREFIX}}-form-row input:focus,
+.{{PLUGIN_PREFIX}}-form-row textarea:focus,
+.{{PLUGIN_PREFIX}}-form-row select:focus {
+	outline: none;
+	border-color: #0073aa;
+	box-shadow: 0 0 0 1px #0073aa;
+}
+
+.{{PLUGIN_PREFIX}}-button {
+	background-color: #0073aa;
+	color: #fff;
+	padding: 12px 24px;
+	border: none;
+	border-radius: 4px;
+	font-size: 16px;
+	cursor: pointer;
+	transition: background-color 0.2s;
+}
+
+.{{PLUGIN_PREFIX}}-button:hover {
+	background-color: #005177;
+}
+
+.{{PLUGIN_PREFIX}}-button:disabled {
+	background-color: #ccc;
+	cursor: not-allowed;
+}
+
+/* Messages */
+.{{PLUGIN_PREFIX}}-form-messages {
+	margin-top: 15px;
+}
+
+.{{PLUGIN_PREFIX}}-message {
+	padding: 12px;
+	border-radius: 4px;
+	margin-bottom: 10px;
+}
+
+.{{PLUGIN_PREFIX}}-message-success {
+	background-color: #d4edda;
+	color: #155724;
+	border: 1px solid #c3e6cb;
+}
+
+.{{PLUGIN_PREFIX}}-message-error {
+	background-color: #f8d7da;
+	color: #721c24;
+	border: 1px solid #f5c6cb;
+}
+
+/* List Styles */
+.{{PLUGIN_PREFIX}}-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.{{PLUGIN_PREFIX}}-list-item {
+	padding: 15px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	margin-bottom: 10px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.{{PLUGIN_PREFIX}}-status {
+	padding: 4px 8px;
+	border-radius: 3px;
+	font-size: 12px;
+	text-transform: uppercase;
+}
+
+.{{PLUGIN_PREFIX}}-status.status-active {
+	background-color: #d4edda;
+	color: #155724;
+}
+
+.{{PLUGIN_PREFIX}}-status.status-pending {
+	background-color: #fff3cd;
+	color: #856404;
+}
+
+/* Login Required */
+.{{PLUGIN_PREFIX}}-login-required {
+	padding: 20px;
+	background-color: #f8f9fa;
+	border: 1px solid #dee2e6;
+	border-radius: 4px;
+	text-align: center;
+}
+
+// ============================================================================
+// JS FILE TEMPLATE (assets/js/{{SHORTCODE_TAG}}.js)
+// ============================================================================
+
+/**
+ * {{PAGE_NAME}} JavaScript
+ *
+ * @package {{NAMESPACE}}
+ */
+
+(function($) {
+	'use strict';
+
+	var {{PLUGIN_PREFIX}}_{{SHORTCODE_TAG}} = {
+
+		/**
+		 * Initialize.
+		 */
+		init: function() {
+			this.bindEvents();
+		},
+
+		/**
+		 * Bind events.
+		 */
+		bindEvents: function() {
+			$('#{{PLUGIN_PREFIX}}-{{SHORTCODE_TAG}}-form').on('submit', this.handleSubmit.bind(this));
+		},
+
+		/**
+		 * Handle form submission.
+		 *
+		 * @param {Event} e Submit event.
+		 */
+		handleSubmit: function(e) {
+			e.preventDefault();
+
+			var $form = $(e.target);
+			var $button = $form.find('button[type="submit"]');
+			var $messages = $form.find('.{{PLUGIN_PREFIX}}-form-messages');
+
+			// Disable button.
+			$button.prop('disabled', true).text({{PLUGIN_PREFIX}}_{{SHORTCODE_TAG}}.i18n.loading);
+
+			// Clear messages.
+			$messages.empty();
+
+			// Collect form data.
+			var formData = $form.serialize();
+			formData += '&action={{AJAX_ACTION}}';
+			formData += '&nonce=' + {{PLUGIN_PREFIX}}_{{SHORTCODE_TAG}}.nonce;
+
+			// Send AJAX request.
+			$.ajax({
+				url: {{PLUGIN_PREFIX}}_{{SHORTCODE_TAG}}.ajax_url,
+				type: 'POST',
+				data: formData,
+				success: function(response) {
+					if (response.success) {
+						$messages.html('<div class="{{PLUGIN_PREFIX}}-message {{PLUGIN_PREFIX}}-message-success">' + {{PLUGIN_PREFIX}}_{{SHORTCODE_TAG}}.i18n.success + '</div>');
+						$form[0].reset();
+					} else {
+						$messages.html('<div class="{{PLUGIN_PREFIX}}-message {{PLUGIN_PREFIX}}-message-error">' + response.data.message + '</div>');
+					}
+				},
+				error: function() {
+					$messages.html('<div class="{{PLUGIN_PREFIX}}-message {{PLUGIN_PREFIX}}-message-error">' + {{PLUGIN_PREFIX}}_{{SHORTCODE_TAG}}.i18n.error + '</div>');
+				},
+				complete: function() {
+					$button.prop('disabled', false).text('Submit');
+				}
+			});
+		}
+	};
+
+	// Initialize on document ready.
+	$(document).ready(function() {
+		{{PLUGIN_PREFIX}}_{{SHORTCODE_TAG}}.init();
+	});
+
+})(jQuery);

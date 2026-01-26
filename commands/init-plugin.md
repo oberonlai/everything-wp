@@ -1,5 +1,8 @@
 ---
 description: Initialize WordPress plugin development environment with testing suite, GitHub Actions, and build scripts
+required_skills:
+  - wp-plugin-dev-init
+  - wp-backend
 ---
 
 # Init Plugin Command
@@ -30,13 +33,25 @@ Use the AskUserQuestion tool to gather the following information:
 1. **Plugin Name** (e.g., "My Awesome Plugin")
 2. **Plugin Slug** (e.g., "my-awesome-plugin")
 3. **Plugin Version** (e.g., "1.0.0")
+4. **Plugin Description** (brief description of what the plugin does)
+5. **Author Name** (e.g., "Your Name")
+6. **Author URI** (e.g., "https://example.com")
 
-**Optional Configuration:**
-4. **PHP Namespace** (default: derived from plugin name)
-5. **Autoload Directory** (default: "src")
-6. **Database User** (default: "root")
-7. **Database Password** (default: empty)
-8. **Database Host** (default: "localhost")
+**Plugin Header Configuration:**
+7. **Plugin URI** (default: empty)
+8. **Requires WordPress** (default: "6.4")
+9. **Requires PHP** (default: "8.0")
+10. **Requires Plugins** (default: empty, comma-separated plugin slugs)
+11. **License** (default: "GPL v2 or later")
+12. **Update URI** (default: false - set to plugin URL for update checking)
+13. **Network** (default: false - set to true for multisite-only plugins)
+
+**Development Configuration:**
+14. **PHP Namespace** (default: derived from plugin name)
+15. **Autoload Directory** (default: "src")
+16. **Database User** (default: "root")
+17. **Database Password** (default: empty)
+18. **Database Host** (default: "localhost")
 
 **Development Tools (multi-select):**
 9. **PHPUnit** - Unit testing framework
@@ -197,6 +212,105 @@ Use the AskUserQuestion tool with the following structure. Ask multiple question
 }
 ```
 
+**Fourth Question Set (Plugin Header):**
+
+```json
+{
+  "questions": [
+    {
+      "question": "What is the plugin description?",
+      "header": "Description",
+      "multiSelect": false,
+      "options": [
+        {
+          "label": "Enter description",
+          "description": "Provide a brief description of what your plugin does"
+        }
+      ]
+    },
+    {
+      "question": "Who is the plugin author?",
+      "header": "Author",
+      "multiSelect": false,
+      "options": [
+        {
+          "label": "Use default (Your Name)",
+          "description": "Use placeholder author name"
+        },
+        {
+          "label": "Enter custom author",
+          "description": "Specify author name and website URL"
+        }
+      ]
+    },
+    {
+      "question": "Does this plugin require other plugins to be installed?",
+      "header": "Requires Plugins",
+      "multiSelect": false,
+      "options": [
+        {
+          "label": "No (Recommended)",
+          "description": "This plugin works standalone without dependencies"
+        },
+        {
+          "label": "Yes",
+          "description": "Specify comma-separated plugin slugs (e.g., woocommerce,advanced-custom-fields)"
+        }
+      ]
+    },
+    {
+      "question": "What license should be used?",
+      "header": "License",
+      "multiSelect": false,
+      "options": [
+        {
+          "label": "GPL v2 or later (Recommended)",
+          "description": "Standard WordPress-compatible license"
+        },
+        {
+          "label": "GPL v3 or later",
+          "description": "Newer GPL version"
+        },
+        {
+          "label": "Enter custom license",
+          "description": "Specify a different license"
+        }
+      ]
+    },
+    {
+      "question": "Is this a multisite-only plugin?",
+      "header": "Network",
+      "multiSelect": false,
+      "options": [
+        {
+          "label": "No (Recommended)",
+          "description": "Plugin works on single site and multisite installations"
+        },
+        {
+          "label": "Yes",
+          "description": "Plugin only works when network activated on multisite"
+        }
+      ]
+    },
+    {
+      "question": "Do you want to configure custom Update URI for self-hosted updates?",
+      "header": "Update URI",
+      "multiSelect": false,
+      "options": [
+        {
+          "label": "No (Recommended)",
+          "description": "Use WordPress.org for updates or no automatic updates"
+        },
+        {
+          "label": "Yes",
+          "description": "Specify a custom Update URI for self-hosted plugin updates"
+        }
+      ]
+    }
+  ]
+}
+```
+
 **Tool Installation Commands:**
 
 Based on user selection, install the corresponding packages:
@@ -296,24 +410,38 @@ After collecting information, replace placeholders in templates:
 
 | Placeholder | Description |
 |-------------|-------------|
-| `{{PLUGIN_NAME}}` | The plugin name (e.g., "my-awesome-plugin") |
-| `{{PLUGIN_SLUG}}` | The plugin slug (same as PLUGIN_NAME) |
+| `{{PLUGIN_NAME}}` | The plugin name (e.g., "My Awesome Plugin") |
+| `{{PLUGIN_SLUG}}` | The plugin slug (e.g., "my-awesome-plugin") |
 | `{{PLUGIN_VERSION}}` | Version number (e.g., "1.0.0") |
+| `{{PLUGIN_DESCRIPTION}}` | Brief description of the plugin |
+| `{{PLUGIN_URI}}` | Plugin homepage URL (default: empty) |
+| `{{AUTHOR_NAME}}` | Author name (e.g., "Your Name") |
+| `{{AUTHOR_URI}}` | Author website URL |
+| `{{REQUIRES_WP}}` | Minimum WordPress version (default: "6.4") |
+| `{{REQUIRES_PHP}}` | Minimum PHP version (default: "8.0") |
+| `{{REQUIRES_PLUGINS}}` | Required plugin slugs, comma-separated (default: empty) |
+| `{{LICENSE}}` | License name (default: "GPL v2 or later") |
+| `{{LICENSE_URI}}` | License URL (default: "https://www.gnu.org/licenses/gpl-2.0.html") |
+| `{{TEXT_DOMAIN}}` | Text domain for i18n (same as PLUGIN_SLUG) |
+| `{{UPDATE_URI}}` | Update URI for custom update checking (default: false) |
+| `{{NETWORK}}` | Multisite-only plugin flag (default: false) |
 | `{{DB_NAME}}` | Test database name (default: "wordpress_test") |
 | `{{NAMESPACE}}` | PHP namespace (e.g., "MyAwesomePlugin") |
-| `{{TEXT_DOMAIN}}` | Text domain for i18n (e.g., "my-awesome-plugin") |
 | `{{PLUGIN_PREFIX}}` | Plugin prefix for constants (e.g., "MY_AWESOME_PLUGIN") |
+| `{{PLUGIN_CONST_PREFIX}}` | Plugin constant prefix in UPPER_CASE |
+| `{{PLUGIN_FUNCTION_PREFIX}}` | Plugin function prefix in snake_case |
 
 ### Step 4: Files to Generate
 
 Using templates from `@everything-wp/skills/wp-plugin-dev-init/templates/`:
 
-1. **scripts/build.php** - From `build.php.template` (if local build script selected)
-2. **.github/workflows/release.yml** - From `release-workflow.yml.template`
-3. **tests/bootstrap.php** - Append content from `bootstrap-addon.php` (if PHPUnit selected)
-4. **src/Bootstrap.php** - From `Bootstrap.php.template` (if OOP structure selected)
-5. **src/Activator.php** - From `Activator.php.template` (if OOP structure selected)
-6. **src/Deactivator.php** - From `Deactivator.php.template` (if OOP structure selected)
+1. **{{PLUGIN_SLUG}}.php** - From `plugin-main.php.template` (main plugin file with complete header)
+2. **scripts/build.php** - From `build.php.template` (if local build script selected)
+3. **.github/workflows/release.yml** - From `release-workflow.yml.template`
+4. **tests/bootstrap.php** - Append content from `bootstrap-addon.php` (if PHPUnit selected)
+5. **src/Bootstrap.php** - From `Bootstrap.php.template` (if OOP structure selected)
+6. **src/Activator.php** - From `Activator.php.template` (if OOP structure selected)
+7. **src/Deactivator.php** - From `Deactivator.php.template` (if OOP structure selected)
 
 ### Step 5: Additional Setup
 
@@ -396,6 +524,19 @@ After generating files:
    ```bash
    composer build
    ```
+
+8. **Setup Internationalization (i18n)**:
+   ```bash
+   # Create languages directory
+   mkdir -p languages
+   
+   # Generate .pot file using WP-CLI
+   wp i18n make-pot . languages/{{TEXT_DOMAIN}}.pot --domain={{TEXT_DOMAIN}}
+   ```
+   
+   This creates:
+   - `languages/` directory for translation files
+   - `languages/{{TEXT_DOMAIN}}.pot` - Template file for translations
 
 ## Example Interaction
 

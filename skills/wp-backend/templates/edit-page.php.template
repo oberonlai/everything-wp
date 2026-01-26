@@ -1,0 +1,387 @@
+<?php
+/**
+ * {{CLASS_NAME}} - Edit Page
+ *
+ * Add/Edit form for {{SINGULAR}}.
+ *
+ * @package {{NAMESPACE}}\Admin
+ */
+
+namespace {{NAMESPACE}}\Admin;
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * {{CLASS_NAME}} class.
+ *
+ * Edit page for {{SINGULAR}}.
+ */
+class {{CLASS_NAME}} {
+
+	/**
+	 * Repository instance.
+	 *
+	 * @var \{{NAMESPACE}}\Repository\{{REPOSITORY_CLASS}}
+	 */
+	private $repository;
+
+	/**
+	 * Current item being edited.
+	 *
+	 * @var object|null
+	 */
+	private $item = null;
+
+	/**
+	 * Validation errors.
+	 *
+	 * @var array
+	 */
+	private $errors = array();
+
+	/**
+	 * Constructor.
+	 */
+	public function __construct() {
+		// Initialize repository.
+		// $this->repository = new \{{NAMESPACE}}\Repository\{{REPOSITORY_CLASS}}();
+	}
+
+	/**
+	 * Render the edit page.
+	 *
+	 * @return void
+	 */
+	public static function render_page(): void {
+		$page = new self();
+		$page->handle_request();
+	}
+
+	/**
+	 * Handle the page request.
+	 *
+	 * @return void
+	 */
+	private function handle_request(): void {
+		// Load existing item if editing.
+		$id = ( isset( $_GET['id'] ) ) ? absint( $_GET['id'] ) : 0;
+
+		if ( $id > 0 ) {
+			// $this->item = $this->repository->get( $id );
+
+			if ( null === $this->item ) {
+				wp_die( esc_html__( 'Item not found.', '{{TEXT_DOMAIN}}' ) );
+			}
+		}
+
+		// Handle form submission.
+		if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['{{PLUGIN_PREFIX}}_{{SINGULAR}}_nonce'] ) ) {
+			$this->handle_save();
+		}
+
+		$this->render();
+	}
+
+	/**
+	 * Handle form save.
+	 *
+	 * @return void
+	 */
+	private function handle_save(): void {
+		// Verify nonce.
+		$nonce = ( isset( $_POST['{{PLUGIN_PREFIX}}_{{SINGULAR}}_nonce'] ) ) ? sanitize_text_field( wp_unslash( $_POST['{{PLUGIN_PREFIX}}_{{SINGULAR}}_nonce'] ) ) : '';
+
+		if ( ! wp_verify_nonce( $nonce, '{{PLUGIN_PREFIX}}_save_{{SINGULAR}}' ) ) {
+			$this->errors[] = __( 'Security check failed.', '{{TEXT_DOMAIN}}' );
+			return;
+		}
+
+		// Check permissions.
+		if ( ! current_user_can( '{{CAPABILITY}}' ) ) {
+			$this->errors[] = __( 'You do not have permission to perform this action.', '{{TEXT_DOMAIN}}' );
+			return;
+		}
+
+		// Get and validate data.
+		$data = $this->get_form_data();
+
+		if ( ! $this->validate( $data ) ) {
+			return;
+		}
+
+		// Save data.
+		$id = ( isset( $_GET['id'] ) ) ? absint( $_GET['id'] ) : 0;
+
+		if ( $id > 0 ) {
+			// Update existing.
+			// $this->repository->update( $id, $data );
+			$message = __( 'Item updated.', '{{TEXT_DOMAIN}}' );
+		} else {
+			// Create new.
+			// $id = $this->repository->create( $data );
+			$id      = 1; // Placeholder.
+			$message = __( 'Item created.', '{{TEXT_DOMAIN}}' );
+		}
+
+		// Redirect to list with success message.
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => '{{PLUGIN_PREFIX}}-{{PLURAL}}',
+					'message' => rawurlencode( $message ),
+				),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Get form data from POST.
+	 *
+	 * @return array Form data.
+	 */
+	private function get_form_data(): array {
+		$data = array();
+
+{{FORM_DATA_EXTRACTION}}
+
+		return $data;
+	}
+
+	/**
+	 * Validate form data.
+	 *
+	 * @param array $data Form data to validate.
+	 * @return bool True if valid, false otherwise.
+	 */
+	private function validate( array $data ): bool {
+{{VALIDATION}}
+
+		return empty( $this->errors );
+	}
+
+	/**
+	 * Render the edit form.
+	 *
+	 * @return void
+	 */
+	private function render(): void {
+		$is_edit    = null !== $this->item;
+		$page_title = $is_edit ? __( 'Edit {{SINGULAR_LABEL}}', '{{TEXT_DOMAIN}}' ) : __( 'Add New {{SINGULAR_LABEL}}', '{{TEXT_DOMAIN}}' );
+
+		?>
+		<div class="wrap">
+			<h1><?php echo esc_html( $page_title ); ?></h1>
+
+			<?php if ( ! empty( $this->errors ) ) : ?>
+				<div class="notice notice-error">
+					<?php foreach ( $this->errors as $error ) : ?>
+						<p><?php echo esc_html( $error ); ?></p>
+					<?php endforeach; ?>
+				</div>
+			<?php endif; ?>
+
+			<form method="post" action="">
+				<?php wp_nonce_field( '{{PLUGIN_PREFIX}}_save_{{SINGULAR}}', '{{PLUGIN_PREFIX}}_{{SINGULAR}}_nonce' ); ?>
+
+				<table class="form-table" role="presentation">
+					<tbody>
+{{FORM_FIELDS}}
+					</tbody>
+				</table>
+
+				<p class="submit">
+					<input type="submit" name="submit" id="submit" class="button button-primary" value="<?php echo esc_attr( $is_edit ? __( 'Update', '{{TEXT_DOMAIN}}' ) : __( 'Create', '{{TEXT_DOMAIN}}' ) ); ?>">
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page={{PLUGIN_PREFIX}}-{{PLURAL}}' ) ); ?>" class="button"><?php esc_html_e( 'Cancel', '{{TEXT_DOMAIN}}' ); ?></a>
+				</p>
+			</form>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Get field value for display.
+	 *
+	 * @param string $field   Field name.
+	 * @param mixed  $default Default value.
+	 * @return mixed Field value.
+	 */
+	private function get_field_value( string $field, $default = '' ) {
+		// First check POST data (for form resubmission).
+		if ( isset( $_POST[ $field ] ) ) {
+			return sanitize_text_field( wp_unslash( $_POST[ $field ] ) );
+		}
+
+		// Then check existing item.
+		if ( null !== $this->item && isset( $this->item->$field ) ) {
+			return $this->item->$field;
+		}
+
+		return $default;
+	}
+}
+
+// ============================================================================
+// FORM DATA EXTRACTION TEMPLATES
+// ============================================================================
+
+// TEXT_FIELD:
+		$data['{{FIELD_NAME}}'] = ( isset( $_POST['{{FIELD_NAME}}'] ) ) ? sanitize_text_field( wp_unslash( $_POST['{{FIELD_NAME}}'] ) ) : '';
+
+// TEXTAREA_FIELD:
+		$data['{{FIELD_NAME}}'] = ( isset( $_POST['{{FIELD_NAME}}'] ) ) ? sanitize_textarea_field( wp_unslash( $_POST['{{FIELD_NAME}}'] ) ) : '';
+
+// HTML_FIELD:
+		$data['{{FIELD_NAME}}'] = ( isset( $_POST['{{FIELD_NAME}}'] ) ) ? wp_kses_post( wp_unslash( $_POST['{{FIELD_NAME}}'] ) ) : '';
+
+// INTEGER_FIELD:
+		$data['{{FIELD_NAME}}'] = ( isset( $_POST['{{FIELD_NAME}}'] ) ) ? absint( $_POST['{{FIELD_NAME}}'] ) : 0;
+
+// FLOAT_FIELD:
+		$data['{{FIELD_NAME}}'] = ( isset( $_POST['{{FIELD_NAME}}'] ) ) ? (float) $_POST['{{FIELD_NAME}}'] : 0.0;
+
+// SELECT_FIELD:
+		$data['{{FIELD_NAME}}'] = ( isset( $_POST['{{FIELD_NAME}}'] ) ) ? sanitize_text_field( wp_unslash( $_POST['{{FIELD_NAME}}'] ) ) : '';
+
+// CHECKBOX_FIELD:
+		$data['{{FIELD_NAME}}'] = ( isset( $_POST['{{FIELD_NAME}}'] ) ) ? 1 : 0;
+
+// ============================================================================
+// VALIDATION TEMPLATES
+// ============================================================================
+
+// REQUIRED_TEXT:
+		if ( empty( $data['{{FIELD_NAME}}'] ) ) {
+			$this->errors[] = __( '{{FIELD_LABEL}} is required.', '{{TEXT_DOMAIN}}' );
+		}
+
+// VALID_EMAIL:
+		if ( ! empty( $data['{{FIELD_NAME}}'] ) && ! is_email( $data['{{FIELD_NAME}}'] ) ) {
+			$this->errors[] = __( 'Please enter a valid email address.', '{{TEXT_DOMAIN}}' );
+		}
+
+// VALID_URL:
+		if ( ! empty( $data['{{FIELD_NAME}}'] ) && ! filter_var( $data['{{FIELD_NAME}}'], FILTER_VALIDATE_URL ) ) {
+			$this->errors[] = __( 'Please enter a valid URL.', '{{TEXT_DOMAIN}}' );
+		}
+
+// VALID_SELECT:
+		$valid_{{FIELD_NAME}}_values = array( {{VALID_VALUES}} );
+		if ( ! empty( $data['{{FIELD_NAME}}'] ) && ! in_array( $data['{{FIELD_NAME}}'], $valid_{{FIELD_NAME}}_values, true ) ) {
+			$this->errors[] = __( 'Invalid {{FIELD_LABEL}} value.', '{{TEXT_DOMAIN}}' );
+		}
+
+// ============================================================================
+// FORM FIELD TEMPLATES
+// ============================================================================
+
+// TEXT_INPUT:
+						<tr>
+							<th scope="row">
+								<label for="{{FIELD_NAME}}"><?php esc_html_e( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ); ?></label>
+							</th>
+							<td>
+								<input type="text" id="{{FIELD_NAME}}" name="{{FIELD_NAME}}" value="<?php echo esc_attr( $this->get_field_value( '{{FIELD_NAME}}' ) ); ?>" class="regular-text" {{REQUIRED}}>
+								<?php if ( ! empty( '{{FIELD_DESCRIPTION}}' ) ) : ?>
+									<p class="description"><?php esc_html_e( '{{FIELD_DESCRIPTION}}', '{{TEXT_DOMAIN}}' ); ?></p>
+								<?php endif; ?>
+							</td>
+						</tr>
+
+// TEXTAREA_INPUT:
+						<tr>
+							<th scope="row">
+								<label for="{{FIELD_NAME}}"><?php esc_html_e( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ); ?></label>
+							</th>
+							<td>
+								<textarea id="{{FIELD_NAME}}" name="{{FIELD_NAME}}" rows="5" cols="50" class="large-text" {{REQUIRED}}><?php echo esc_textarea( $this->get_field_value( '{{FIELD_NAME}}' ) ); ?></textarea>
+								<?php if ( ! empty( '{{FIELD_DESCRIPTION}}' ) ) : ?>
+									<p class="description"><?php esc_html_e( '{{FIELD_DESCRIPTION}}', '{{TEXT_DOMAIN}}' ); ?></p>
+								<?php endif; ?>
+							</td>
+						</tr>
+
+// NUMBER_INPUT:
+						<tr>
+							<th scope="row">
+								<label for="{{FIELD_NAME}}"><?php esc_html_e( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ); ?></label>
+							</th>
+							<td>
+								<input type="number" id="{{FIELD_NAME}}" name="{{FIELD_NAME}}" value="<?php echo esc_attr( $this->get_field_value( '{{FIELD_NAME}}', 0 ) ); ?>" class="small-text" step="{{STEP}}" min="{{MIN}}" max="{{MAX}}" {{REQUIRED}}>
+								<?php if ( ! empty( '{{FIELD_DESCRIPTION}}' ) ) : ?>
+									<p class="description"><?php esc_html_e( '{{FIELD_DESCRIPTION}}', '{{TEXT_DOMAIN}}' ); ?></p>
+								<?php endif; ?>
+							</td>
+						</tr>
+
+// SELECT_INPUT:
+						<tr>
+							<th scope="row">
+								<label for="{{FIELD_NAME}}"><?php esc_html_e( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ); ?></label>
+							</th>
+							<td>
+								<select id="{{FIELD_NAME}}" name="{{FIELD_NAME}}" {{REQUIRED}}>
+									<?php
+									$current_value = $this->get_field_value( '{{FIELD_NAME}}' );
+									$options = array(
+{{SELECT_OPTIONS}}
+									);
+									foreach ( $options as $value => $label ) {
+										printf(
+											'<option value="%s" %s>%s</option>',
+											esc_attr( $value ),
+											selected( $current_value, $value, false ),
+											esc_html( $label )
+										);
+									}
+									?>
+								</select>
+								<?php if ( ! empty( '{{FIELD_DESCRIPTION}}' ) ) : ?>
+									<p class="description"><?php esc_html_e( '{{FIELD_DESCRIPTION}}', '{{TEXT_DOMAIN}}' ); ?></p>
+								<?php endif; ?>
+							</td>
+						</tr>
+
+// CHECKBOX_INPUT:
+						<tr>
+							<th scope="row"><?php esc_html_e( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ); ?></th>
+							<td>
+								<label for="{{FIELD_NAME}}">
+									<input type="checkbox" id="{{FIELD_NAME}}" name="{{FIELD_NAME}}" value="1" <?php checked( $this->get_field_value( '{{FIELD_NAME}}', 0 ), 1 ); ?>>
+									<?php esc_html_e( '{{CHECKBOX_LABEL}}', '{{TEXT_DOMAIN}}' ); ?>
+								</label>
+								<?php if ( ! empty( '{{FIELD_DESCRIPTION}}' ) ) : ?>
+									<p class="description"><?php esc_html_e( '{{FIELD_DESCRIPTION}}', '{{TEXT_DOMAIN}}' ); ?></p>
+								<?php endif; ?>
+							</td>
+						</tr>
+
+// EMAIL_INPUT:
+						<tr>
+							<th scope="row">
+								<label for="{{FIELD_NAME}}"><?php esc_html_e( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ); ?></label>
+							</th>
+							<td>
+								<input type="email" id="{{FIELD_NAME}}" name="{{FIELD_NAME}}" value="<?php echo esc_attr( $this->get_field_value( '{{FIELD_NAME}}' ) ); ?>" class="regular-text" {{REQUIRED}}>
+								<?php if ( ! empty( '{{FIELD_DESCRIPTION}}' ) ) : ?>
+									<p class="description"><?php esc_html_e( '{{FIELD_DESCRIPTION}}', '{{TEXT_DOMAIN}}' ); ?></p>
+								<?php endif; ?>
+							</td>
+						</tr>
+
+// URL_INPUT:
+						<tr>
+							<th scope="row">
+								<label for="{{FIELD_NAME}}"><?php esc_html_e( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ); ?></label>
+							</th>
+							<td>
+								<input type="url" id="{{FIELD_NAME}}" name="{{FIELD_NAME}}" value="<?php echo esc_url( $this->get_field_value( '{{FIELD_NAME}}' ) ); ?>" class="regular-text" placeholder="https://" {{REQUIRED}}>
+								<?php if ( ! empty( '{{FIELD_DESCRIPTION}}' ) ) : ?>
+									<p class="description"><?php esc_html_e( '{{FIELD_DESCRIPTION}}', '{{TEXT_DOMAIN}}' ); ?></p>
+								<?php endif; ?>
+							</td>
+						</tr>

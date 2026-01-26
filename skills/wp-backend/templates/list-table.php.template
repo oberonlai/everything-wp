@@ -1,0 +1,474 @@
+<?php
+/**
+ * {{CLASS_NAME}} - WP_List_Table Implementation
+ *
+ * Displays {{PLURAL}} in WordPress admin.
+ *
+ * @package {{NAMESPACE}}\Admin
+ */
+
+namespace {{NAMESPACE}}\Admin;
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+// Load WP_List_Table if not available.
+if ( ! class_exists( 'WP_List_Table' ) ) {
+	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
+}
+
+/**
+ * {{CLASS_NAME}} class.
+ *
+ * List table for displaying {{PLURAL}}.
+ */
+class {{CLASS_NAME}} extends \WP_List_Table {
+
+	/**
+	 * Repository instance.
+	 *
+	 * @var \{{NAMESPACE}}\Repository\{{REPOSITORY_CLASS}}
+	 */
+	private $repository;
+
+	/**
+	 * Constructor.
+	 */
+	public function __construct() {
+		parent::__construct(
+			array(
+				'singular' => '{{SINGULAR}}',
+				'plural'   => '{{PLURAL}}',
+				'ajax'     => false,
+			)
+		);
+
+		// Initialize repository.
+		// $this->repository = new \{{NAMESPACE}}\Repository\{{REPOSITORY_CLASS}}();
+	}
+
+	/**
+	 * Get the table columns.
+	 *
+	 * @return array Array of columns.
+	 */
+	public function get_columns(): array {
+		return array(
+			'cb'         => '<input type="checkbox" />',
+{{COLUMNS}}
+		);
+	}
+
+	/**
+	 * Get sortable columns.
+	 *
+	 * @return array Array of sortable columns.
+	 */
+	public function get_sortable_columns(): array {
+		return array(
+{{SORTABLE_COLUMNS}}
+		);
+	}
+
+	/**
+	 * Prepare items for display.
+	 *
+	 * @return void
+	 */
+	public function prepare_items(): void {
+		$columns  = $this->get_columns();
+		$hidden   = array();
+		$sortable = $this->get_sortable_columns();
+
+		$this->_column_headers = array( $columns, $hidden, $sortable );
+
+		// Process bulk actions.
+		$this->process_bulk_action();
+
+		// Get parameters.
+		$per_page     = $this->get_items_per_page( '{{PLUGIN_PREFIX}}_{{PLURAL}}_per_page', 20 );
+		$current_page = $this->get_pagenum();
+		$orderby      = ( isset( $_REQUEST['orderby'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['orderby'] ) ) : 'id';
+		$order        = ( isset( $_REQUEST['order'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['order'] ) ) : 'DESC';
+
+		// Get search query.
+		$search = ( isset( $_REQUEST['s'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : '';
+
+		// Get status filter.
+		$status = ( isset( $_REQUEST['status'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['status'] ) ) : '';
+
+		// Build where conditions.
+		$where = array();
+		if ( ! empty( $status ) ) {
+			$where['status'] = $status;
+		}
+
+		// TODO: Replace with your repository calls.
+		// $items = $this->repository->get_all( $where, $orderby, $order, $per_page, ($current_page - 1) * $per_page );
+		// $total_items = $this->repository->count( $where );
+
+		// Placeholder data.
+		$items       = array();
+		$total_items = 0;
+
+		$this->items = $items;
+
+		$this->set_pagination_args(
+			array(
+				'total_items' => $total_items,
+				'per_page'    => $per_page,
+				'total_pages' => ceil( $total_items / $per_page ),
+			)
+		);
+	}
+
+	/**
+	 * Default column renderer.
+	 *
+	 * @param object $item        Current item.
+	 * @param string $column_name Column name.
+	 * @return string Column output.
+	 */
+	protected function column_default( $item, $column_name ): string {
+		if ( isset( $item->$column_name ) ) {
+			return esc_html( $item->$column_name );
+		}
+
+		return '';
+	}
+
+	/**
+	 * Checkbox column.
+	 *
+	 * @param object $item Current item.
+	 * @return string Checkbox HTML.
+	 */
+	protected function column_cb( $item ): string {
+		return sprintf(
+			'<input type="checkbox" name="{{SINGULAR}}_ids[]" value="%d" />',
+			$item->id
+		);
+	}
+
+	/**
+	 * Title column with row actions.
+	 *
+	 * @param object $item Current item.
+	 * @return string Column output with actions.
+	 */
+	protected function column_title( $item ): string {
+		$edit_url   = admin_url( sprintf( 'admin.php?page={{PLUGIN_PREFIX}}-{{SINGULAR}}-edit&id=%d', $item->id ) );
+		$delete_url = wp_nonce_url(
+			admin_url( sprintf( 'admin.php?page={{PLUGIN_PREFIX}}-{{PLURAL}}&action=delete&{{SINGULAR}}_ids[]=%d', $item->id ) ),
+			'bulk-{{PLURAL}}'
+		);
+
+		$actions = array(
+			'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), __( 'Edit', '{{TEXT_DOMAIN}}' ) ),
+			'delete' => sprintf( '<a href="%s" onclick="return confirm(\'%s\');">%s</a>', esc_url( $delete_url ), esc_js( __( 'Are you sure?', '{{TEXT_DOMAIN}}' ) ), __( 'Delete', '{{TEXT_DOMAIN}}' ) ),
+		);
+
+		return sprintf(
+			'<strong><a href="%s">%s</a></strong>%s',
+			esc_url( $edit_url ),
+			esc_html( $item->title ),
+			$this->row_actions( $actions )
+		);
+	}
+
+{{COLUMN_METHODS}}
+
+	/**
+	 * Get bulk actions.
+	 *
+	 * @return array Bulk actions.
+	 */
+	public function get_bulk_actions(): array {
+		return array(
+{{BULK_ACTIONS}}
+		);
+	}
+
+	/**
+	 * Process bulk actions.
+	 *
+	 * @return void
+	 */
+	public function process_bulk_action(): void {
+		// Check nonce.
+		if ( isset( $_REQUEST['_wpnonce'] ) ) {
+			$nonce = sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) );
+			if ( ! wp_verify_nonce( $nonce, 'bulk-{{PLURAL}}' ) ) {
+				return;
+			}
+		} else {
+			return;
+		}
+
+		// Get selected IDs.
+		$ids = ( isset( $_REQUEST['{{SINGULAR}}_ids'] ) ) ? array_map( 'absint', $_REQUEST['{{SINGULAR}}_ids'] ) : array();
+
+		if ( empty( $ids ) ) {
+			return;
+		}
+
+		$action = $this->current_action();
+
+		switch ( $action ) {
+			case 'delete':
+				foreach ( $ids as $id ) {
+					// $this->repository->delete( $id );
+				}
+				$message = __( 'Items deleted.', '{{TEXT_DOMAIN}}' );
+				break;
+
+{{BULK_ACTION_CASES}}
+
+			default:
+				return;
+		}
+
+		// Redirect with success message.
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => '{{PLUGIN_PREFIX}}-{{PLURAL}}',
+					'message' => rawurlencode( $message ),
+				),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Get status filter views.
+	 *
+	 * @return array Views.
+	 */
+	protected function get_views(): array {
+		$current_status = ( isset( $_REQUEST['status'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['status'] ) ) : '';
+		$base_url       = admin_url( 'admin.php?page={{PLUGIN_PREFIX}}-{{PLURAL}}' );
+
+		// TODO: Replace with your repository counts.
+		// $all_count = $this->repository->count();
+		// $pending_count = $this->repository->count( array( 'status' => 'pending' ) );
+		// $active_count = $this->repository->count( array( 'status' => 'active' ) );
+
+		$all_count     = 0;
+		$pending_count = 0;
+		$active_count  = 0;
+
+		$views = array(
+			'all' => sprintf(
+				'<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
+				esc_url( $base_url ),
+				( '' === $current_status ) ? 'current' : '',
+				__( 'All', '{{TEXT_DOMAIN}}' ),
+				$all_count
+			),
+{{STATUS_VIEWS}}
+		);
+
+		return $views;
+	}
+
+	/**
+	 * Display the search box.
+	 *
+	 * @param string $text     Button text.
+	 * @param string $input_id Input ID.
+	 * @return void
+	 */
+	public function search_box( $text, $input_id ): void {
+		if ( empty( $_REQUEST['s'] ) && ! $this->has_items() ) {
+			return;
+		}
+
+		$search = ( isset( $_REQUEST['s'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : '';
+
+		?>
+		<p class="search-box">
+			<label class="screen-reader-text" for="<?php echo esc_attr( $input_id ); ?>"><?php echo esc_html( $text ); ?>:</label>
+			<input type="search" id="<?php echo esc_attr( $input_id ); ?>" name="s" value="<?php echo esc_attr( $search ); ?>" />
+			<?php submit_button( $text, '', '', false, array( 'id' => 'search-submit' ) ); ?>
+		</p>
+		<?php
+	}
+
+	/**
+	 * Display message when no items found.
+	 *
+	 * @return void
+	 */
+	public function no_items(): void {
+		esc_html_e( 'No {{PLURAL}} found.', '{{TEXT_DOMAIN}}' );
+	}
+
+	/**
+	 * Render the list table page.
+	 *
+	 * @return void
+	 */
+	public static function render_page(): void {
+		$list_table = new self();
+		$list_table->prepare_items();
+
+		// Show success message.
+		if ( isset( $_GET['message'] ) ) {
+			$message = sanitize_text_field( wp_unslash( $_GET['message'] ) );
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
+		}
+
+		?>
+		<div class="wrap">
+			<h1 class="wp-heading-inline"><?php esc_html_e( '{{PAGE_TITLE}}', '{{TEXT_DOMAIN}}' ); ?></h1>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page={{PLUGIN_PREFIX}}-{{SINGULAR}}-edit' ) ); ?>" class="page-title-action">
+				<?php esc_html_e( 'Add New', '{{TEXT_DOMAIN}}' ); ?>
+			</a>
+			<hr class="wp-header-end">
+
+			<?php $list_table->views(); ?>
+
+			<form method="get">
+				<input type="hidden" name="page" value="{{PLUGIN_PREFIX}}-{{PLURAL}}" />
+				<?php
+				$list_table->search_box( __( 'Search', '{{TEXT_DOMAIN}}' ), '{{SINGULAR}}-search' );
+				$list_table->display();
+				?>
+			</form>
+		</div>
+		<?php
+	}
+}
+
+// ============================================================================
+// COLUMN TEMPLATES
+// ============================================================================
+
+// COLUMN_DEFINITION:
+			'{{COLUMN_KEY}}' => __( '{{COLUMN_LABEL}}', '{{TEXT_DOMAIN}}' ),
+
+// SORTABLE_COLUMN:
+			'{{COLUMN_KEY}}' => array( '{{COLUMN_KEY}}', {{IS_DEFAULT}} ),
+
+// COLUMN_METHOD_STATUS:
+	/**
+	 * Status column.
+	 *
+	 * @param object $item Current item.
+	 * @return string Status badge HTML.
+	 */
+	protected function column_status( $item ): string {
+		$status_labels = array(
+			'pending'   => __( 'Pending', '{{TEXT_DOMAIN}}' ),
+			'active'    => __( 'Active', '{{TEXT_DOMAIN}}' ),
+			'completed' => __( 'Completed', '{{TEXT_DOMAIN}}' ),
+		);
+
+		$status = isset( $item->status ) ? $item->status : 'pending';
+		$label  = isset( $status_labels[ $status ] ) ? $status_labels[ $status ] : $status;
+
+		return sprintf(
+			'<span class="status-badge status-%s">%s</span>',
+			esc_attr( $status ),
+			esc_html( $label )
+		);
+	}
+
+// COLUMN_METHOD_DATE:
+	/**
+	 * Date column.
+	 *
+	 * @param object $item Current item.
+	 * @return string Formatted date.
+	 */
+	protected function column_{{COLUMN_KEY}}( $item ): string {
+		if ( empty( $item->{{COLUMN_KEY}} ) ) {
+			return '—';
+		}
+
+		return esc_html(
+			date_i18n(
+				get_option( 'date_format' ) . ' ' . get_option( 'time_format' ),
+				strtotime( $item->{{COLUMN_KEY}} )
+			)
+		);
+	}
+
+// COLUMN_METHOD_USER:
+	/**
+	 * User column.
+	 *
+	 * @param object $item Current item.
+	 * @return string User display name.
+	 */
+	protected function column_user_id( $item ): string {
+		if ( empty( $item->user_id ) ) {
+			return '—';
+		}
+
+		$user = get_userdata( $item->user_id );
+
+		if ( ! $user ) {
+			return __( 'Unknown', '{{TEXT_DOMAIN}}' );
+		}
+
+		return esc_html( $user->display_name );
+	}
+
+// COLUMN_METHOD_AMOUNT:
+	/**
+	 * Amount column.
+	 *
+	 * @param object $item Current item.
+	 * @return string Formatted amount.
+	 */
+	protected function column_amount( $item ): string {
+		if ( ! isset( $item->amount ) ) {
+			return '—';
+		}
+
+		return esc_html( number_format_i18n( $item->amount, 2 ) );
+	}
+
+// ============================================================================
+// BULK ACTION TEMPLATES
+// ============================================================================
+
+// BULK_DELETE:
+			'delete' => __( 'Delete', '{{TEXT_DOMAIN}}' ),
+
+// BULK_CHANGE_STATUS:
+			'mark_active'    => __( 'Mark as Active', '{{TEXT_DOMAIN}}' ),
+			'mark_completed' => __( 'Mark as Completed', '{{TEXT_DOMAIN}}' ),
+
+// BULK_ACTION_CASE_STATUS:
+			case 'mark_active':
+				foreach ( $ids as $id ) {
+					// $this->repository->update( $id, array( 'status' => 'active' ) );
+				}
+				$message = __( 'Items marked as active.', '{{TEXT_DOMAIN}}' );
+				break;
+
+			case 'mark_completed':
+				foreach ( $ids as $id ) {
+					// $this->repository->update( $id, array( 'status' => 'completed' ) );
+				}
+				$message = __( 'Items marked as completed.', '{{TEXT_DOMAIN}}' );
+				break;
+
+// ============================================================================
+// STATUS VIEW TEMPLATES
+// ============================================================================
+
+// STATUS_VIEW:
+			'{{STATUS_KEY}}' => sprintf(
+				'<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
+				esc_url( add_query_arg( 'status', '{{STATUS_KEY}}', $base_url ) ),
+				( '{{STATUS_KEY}}' === $current_status ) ? 'current' : '',
+				__( '{{STATUS_LABEL}}', '{{TEXT_DOMAIN}}' ),
+				${{STATUS_KEY}}_count
+			),

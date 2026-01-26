@@ -1,0 +1,534 @@
+<?php
+/**
+ * {{CLASS_NAME}} - REST API Controller
+ *
+ * Handles REST API endpoints for {{REST_BASE}} resource.
+ *
+ * @package {{NAMESPACE}}\Api
+ */
+
+namespace {{NAMESPACE}}\Api;
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * {{CLASS_NAME}} class.
+ *
+ * REST API controller for {{REST_BASE}}.
+ */
+class {{CLASS_NAME}} extends \WP_REST_Controller {
+
+	/**
+	 * REST API namespace.
+	 *
+	 * @var string
+	 */
+	protected $namespace = '{{REST_NAMESPACE}}';
+
+	/**
+	 * REST API base.
+	 *
+	 * @var string
+	 */
+	protected $rest_base = '{{REST_BASE}}';
+
+	/**
+	 * Register the routes for the controller.
+	 *
+	 * @return void
+	 */
+	public function register_routes(): void {
+		// GET /items - List all items.
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base,
+			array(
+				array(
+					'methods'             => \WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_items' ),
+					'permission_callback' => array( $this, 'get_items_permissions_check' ),
+					'args'                => $this->get_collection_params(),
+				),
+				array(
+					'methods'             => \WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_item' ),
+					'permission_callback' => array( $this, 'create_item_permissions_check' ),
+					'args'                => $this->get_endpoint_args_for_item_schema( \WP_REST_Server::CREATABLE ),
+				),
+				'schema' => array( $this, 'get_public_item_schema' ),
+			)
+		);
+
+		// GET/PUT/PATCH/DELETE /items/{id} - Single item operations.
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<id>[\d]+)',
+			array(
+				'args'   => array(
+					'id' => array(
+						'description' => __( 'Unique identifier for the resource.', '{{TEXT_DOMAIN}}' ),
+						'type'        => 'integer',
+					),
+				),
+				array(
+					'methods'             => \WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_item' ),
+					'permission_callback' => array( $this, 'get_item_permissions_check' ),
+					'args'                => array(
+						'context' => $this->get_context_param( array( 'default' => 'view' ) ),
+					),
+				),
+				array(
+					'methods'             => \WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_item' ),
+					'permission_callback' => array( $this, 'update_item_permissions_check' ),
+					'args'                => $this->get_endpoint_args_for_item_schema( \WP_REST_Server::EDITABLE ),
+				),
+				array(
+					'methods'             => \WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'delete_item' ),
+					'permission_callback' => array( $this, 'delete_item_permissions_check' ),
+				),
+				'schema' => array( $this, 'get_public_item_schema' ),
+			)
+		);
+	}
+
+	/**
+	 * Check if a given request has access to get items.
+	 *
+	 * @param \WP_REST_Request $request Full data about the request.
+	 * @return bool|\WP_Error True if the request has read access, WP_Error object otherwise.
+	 */
+	public function get_items_permissions_check( $request ) {
+{{READ_PERMISSION}}
+	}
+
+	/**
+	 * Check if a given request has access to get a specific item.
+	 *
+	 * @param \WP_REST_Request $request Full data about the request.
+	 * @return bool|\WP_Error True if the request has read access, WP_Error object otherwise.
+	 */
+	public function get_item_permissions_check( $request ) {
+		return $this->get_items_permissions_check( $request );
+	}
+
+	/**
+	 * Check if a given request has access to create items.
+	 *
+	 * @param \WP_REST_Request $request Full data about the request.
+	 * @return bool|\WP_Error True if the request has create access, WP_Error object otherwise.
+	 */
+	public function create_item_permissions_check( $request ) {
+{{WRITE_PERMISSION}}
+	}
+
+	/**
+	 * Check if a given request has access to update a specific item.
+	 *
+	 * @param \WP_REST_Request $request Full data about the request.
+	 * @return bool|\WP_Error True if the request has update access, WP_Error object otherwise.
+	 */
+	public function update_item_permissions_check( $request ) {
+		return $this->create_item_permissions_check( $request );
+	}
+
+	/**
+	 * Check if a given request has access to delete a specific item.
+	 *
+	 * @param \WP_REST_Request $request Full data about the request.
+	 * @return bool|\WP_Error True if the request has delete access, WP_Error object otherwise.
+	 */
+	public function delete_item_permissions_check( $request ) {
+		return $this->create_item_permissions_check( $request );
+	}
+
+	/**
+	 * Get a collection of items.
+	 *
+	 * @param \WP_REST_Request $request Full data about the request.
+	 * @return \WP_REST_Response|\WP_Error Response object on success, or WP_Error object on failure.
+	 */
+	public function get_items( $request ) {
+		$params = $request->get_query_params();
+
+		// TODO: Replace with your repository call.
+		// $repository = new \{{NAMESPACE}}\Repository\{{REPOSITORY_CLASS}}();
+		// $items = $repository->get_all( array(), 'id', 'DESC', $params['per_page'], ($params['page'] - 1) * $params['per_page'] );
+		// $total = $repository->count();
+
+		// Placeholder response.
+		$items = array();
+		$total = 0;
+
+		$data = array();
+		foreach ( $items as $item ) {
+			$item_data = $this->prepare_item_for_response( $item, $request );
+			$data[]    = $this->prepare_response_for_collection( $item_data );
+		}
+
+		$response = rest_ensure_response( $data );
+
+		// Add pagination headers.
+		$max_pages = ceil( $total / (int) $params['per_page'] );
+
+		$response->header( 'X-WP-Total', $total );
+		$response->header( 'X-WP-TotalPages', $max_pages );
+
+		return $response;
+	}
+
+	/**
+	 * Get one item from the collection.
+	 *
+	 * @param \WP_REST_Request $request Full data about the request.
+	 * @return \WP_REST_Response|\WP_Error Response object on success, or WP_Error object on failure.
+	 */
+	public function get_item( $request ) {
+		$id = (int) $request->get_param( 'id' );
+
+		// TODO: Replace with your repository call.
+		// $repository = new \{{NAMESPACE}}\Repository\{{REPOSITORY_CLASS}}();
+		// $item = $repository->get( $id );
+
+		$item = null; // Placeholder.
+
+		if ( null === $item ) {
+			return new \WP_Error(
+				'rest_not_found',
+				__( 'Item not found.', '{{TEXT_DOMAIN}}' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$data = $this->prepare_item_for_response( $item, $request );
+
+		return rest_ensure_response( $data );
+	}
+
+	/**
+	 * Create one item from the collection.
+	 *
+	 * @param \WP_REST_Request $request Full data about the request.
+	 * @return \WP_REST_Response|\WP_Error Response object on success, or WP_Error object on failure.
+	 */
+	public function create_item( $request ) {
+		$data = $this->prepare_item_for_database( $request );
+
+		if ( is_wp_error( $data ) ) {
+			return $data;
+		}
+
+		// TODO: Replace with your repository call.
+		// $repository = new \{{NAMESPACE}}\Repository\{{REPOSITORY_CLASS}}();
+		// $id = $repository->create( $data );
+
+		$id = 0; // Placeholder.
+
+		if ( ! $id ) {
+			return new \WP_Error(
+				'rest_create_failed',
+				__( 'Failed to create item.', '{{TEXT_DOMAIN}}' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		// Get the created item.
+		// $item = $repository->get( $id );
+
+		$item = (object) array_merge( array( 'id' => $id ), $data ); // Placeholder.
+
+		$response = $this->prepare_item_for_response( $item, $request );
+		$response = rest_ensure_response( $response );
+
+		$response->set_status( 201 );
+		$response->header(
+			'Location',
+			rest_url( sprintf( '%s/%s/%d', $this->namespace, $this->rest_base, $id ) )
+		);
+
+		return $response;
+	}
+
+	/**
+	 * Update one item from the collection.
+	 *
+	 * @param \WP_REST_Request $request Full data about the request.
+	 * @return \WP_REST_Response|\WP_Error Response object on success, or WP_Error object on failure.
+	 */
+	public function update_item( $request ) {
+		$id   = (int) $request->get_param( 'id' );
+		$data = $this->prepare_item_for_database( $request );
+
+		if ( is_wp_error( $data ) ) {
+			return $data;
+		}
+
+		// TODO: Replace with your repository call.
+		// $repository = new \{{NAMESPACE}}\Repository\{{REPOSITORY_CLASS}}();
+		// $existing = $repository->get( $id );
+
+		$existing = null; // Placeholder.
+
+		if ( null === $existing ) {
+			return new \WP_Error(
+				'rest_not_found',
+				__( 'Item not found.', '{{TEXT_DOMAIN}}' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		// $repository->update( $id, $data );
+		// $item = $repository->get( $id );
+
+		$item = (object) array_merge( array( 'id' => $id ), $data ); // Placeholder.
+
+		$response = $this->prepare_item_for_response( $item, $request );
+
+		return rest_ensure_response( $response );
+	}
+
+	/**
+	 * Delete one item from the collection.
+	 *
+	 * @param \WP_REST_Request $request Full data about the request.
+	 * @return \WP_REST_Response|\WP_Error Response object on success, or WP_Error object on failure.
+	 */
+	public function delete_item( $request ) {
+		$id = (int) $request->get_param( 'id' );
+
+		// TODO: Replace with your repository call.
+		// $repository = new \{{NAMESPACE}}\Repository\{{REPOSITORY_CLASS}}();
+		// $existing = $repository->get( $id );
+
+		$existing = null; // Placeholder.
+
+		if ( null === $existing ) {
+			return new \WP_Error(
+				'rest_not_found',
+				__( 'Item not found.', '{{TEXT_DOMAIN}}' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$previous = $this->prepare_item_for_response( $existing, $request );
+
+		// $repository->delete( $id );
+
+		$response = new \WP_REST_Response();
+		$response->set_data(
+			array(
+				'deleted'  => true,
+				'previous' => $previous->get_data(),
+			)
+		);
+
+		return $response;
+	}
+
+	/**
+	 * Prepare the item for create or update operation.
+	 *
+	 * @param \WP_REST_Request $request Request object.
+	 * @return array|\WP_Error Item data or WP_Error.
+	 */
+	protected function prepare_item_for_database( $request ) {
+		$data = array();
+
+{{PREPARE_FOR_DATABASE}}
+
+		return $data;
+	}
+
+	/**
+	 * Prepare the item for the REST response.
+	 *
+	 * @param object           $item    Item object.
+	 * @param \WP_REST_Request $request Request object.
+	 * @return \WP_REST_Response Response object.
+	 */
+	public function prepare_item_for_response( $item, $request ) {
+		$context = $request->get_param( 'context' );
+
+		if ( empty( $context ) ) {
+			$context = 'view';
+		}
+
+		$data = array(
+{{PREPARE_RESPONSE}}
+		);
+
+		$data = $this->add_additional_fields_to_object( $data, $request );
+		$data = $this->filter_response_by_context( $data, $context );
+
+		$response = rest_ensure_response( $data );
+		$response->add_links( $this->prepare_links( $item ) );
+
+		return $response;
+	}
+
+	/**
+	 * Prepare links for the request.
+	 *
+	 * @param object $item Item object.
+	 * @return array Links for the given item.
+	 */
+	protected function prepare_links( $item ): array {
+		$base = sprintf( '%s/%s', $this->namespace, $this->rest_base );
+
+		return array(
+			'self'       => array(
+				'href' => rest_url( trailingslashit( $base ) . $item->id ),
+			),
+			'collection' => array(
+				'href' => rest_url( $base ),
+			),
+		);
+	}
+
+	/**
+	 * Get the item's schema, conforming to JSON Schema.
+	 *
+	 * @return array Item schema data.
+	 */
+	public function get_item_schema(): array {
+		if ( $this->schema ) {
+			return $this->add_additional_fields_schema( $this->schema );
+		}
+
+		$schema = array(
+			'$schema'    => 'http://json-schema.org/draft-04/schema#',
+			'title'      => $this->rest_base,
+			'type'       => 'object',
+			'properties' => array(
+				'id' => array(
+					'description' => __( 'Unique identifier for the resource.', '{{TEXT_DOMAIN}}' ),
+					'type'        => 'integer',
+					'context'     => array( 'view', 'edit' ),
+					'readonly'    => true,
+				),
+{{SCHEMA_PROPERTIES}}
+			),
+		);
+
+		$this->schema = $schema;
+
+		return $this->add_additional_fields_schema( $this->schema );
+	}
+
+	/**
+	 * Get the query params for collections.
+	 *
+	 * @return array Collection parameters.
+	 */
+	public function get_collection_params(): array {
+		$params = parent::get_collection_params();
+
+		$params['per_page']['default'] = 10;
+		$params['per_page']['maximum'] = 100;
+
+		return $params;
+	}
+}
+
+// ============================================================================
+// PERMISSION TEMPLATES
+// ============================================================================
+
+// PUBLIC_READ:
+		return true;
+
+// LOGGED_IN_READ:
+		return is_user_logged_in();
+
+// CAPABILITY_READ:
+		return current_user_can( '{{READ_CAPABILITY}}' );
+
+// LOGGED_IN_WRITE:
+		if ( ! is_user_logged_in() ) {
+			return new \WP_Error(
+				'rest_forbidden',
+				__( 'You must be logged in to perform this action.', '{{TEXT_DOMAIN}}' ),
+				array( 'status' => 401 )
+			);
+		}
+
+		return current_user_can( '{{WRITE_CAPABILITY}}' );
+
+// ============================================================================
+// PREPARE FOR DATABASE TEMPLATES
+// ============================================================================
+
+// STRING_FIELD:
+		if ( isset( $request['{{FIELD_NAME}}'] ) ) {
+			$data['{{FIELD_NAME}}'] = sanitize_text_field( $request['{{FIELD_NAME}}'] );
+		}
+
+// HTML_FIELD:
+		if ( isset( $request['{{FIELD_NAME}}'] ) ) {
+			$data['{{FIELD_NAME}}'] = wp_kses_post( $request['{{FIELD_NAME}}'] );
+		}
+
+// INTEGER_FIELD:
+		if ( isset( $request['{{FIELD_NAME}}'] ) ) {
+			$data['{{FIELD_NAME}}'] = absint( $request['{{FIELD_NAME}}'] );
+		}
+
+// FLOAT_FIELD:
+		if ( isset( $request['{{FIELD_NAME}}'] ) ) {
+			$data['{{FIELD_NAME}}'] = (float) $request['{{FIELD_NAME}}'];
+		}
+
+// BOOLEAN_FIELD:
+		if ( isset( $request['{{FIELD_NAME}}'] ) ) {
+			$data['{{FIELD_NAME}}'] = (bool) $request['{{FIELD_NAME}}'];
+		}
+
+// ============================================================================
+// PREPARE RESPONSE TEMPLATES
+// ============================================================================
+
+// BASIC_RESPONSE:
+			'id'         => $item->id,
+			'title'      => $item->title,
+			'status'     => $item->status,
+			'created_at' => mysql_to_rfc3339( $item->created_at ),
+			'updated_at' => mysql_to_rfc3339( $item->updated_at ),
+
+// ============================================================================
+// SCHEMA PROPERTY TEMPLATES
+// ============================================================================
+
+// STRING_SCHEMA:
+				'{{FIELD_NAME}}' => array(
+					'description' => __( '{{FIELD_DESCRIPTION}}', '{{TEXT_DOMAIN}}' ),
+					'type'        => 'string',
+					'context'     => array( 'view', 'edit' ),
+				),
+
+// INTEGER_SCHEMA:
+				'{{FIELD_NAME}}' => array(
+					'description' => __( '{{FIELD_DESCRIPTION}}', '{{TEXT_DOMAIN}}' ),
+					'type'        => 'integer',
+					'context'     => array( 'view', 'edit' ),
+				),
+
+// BOOLEAN_SCHEMA:
+				'{{FIELD_NAME}}' => array(
+					'description' => __( '{{FIELD_DESCRIPTION}}', '{{TEXT_DOMAIN}}' ),
+					'type'        => 'boolean',
+					'context'     => array( 'view', 'edit' ),
+				),
+
+// DATE_SCHEMA:
+				'{{FIELD_NAME}}' => array(
+					'description' => __( '{{FIELD_DESCRIPTION}}', '{{TEXT_DOMAIN}}' ),
+					'type'        => 'string',
+					'format'      => 'date-time',
+					'context'     => array( 'view' ),
+					'readonly'    => true,
+				),

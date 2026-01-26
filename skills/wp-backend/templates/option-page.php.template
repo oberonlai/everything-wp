@@ -1,0 +1,546 @@
+<?php
+/**
+ * {{CLASS_NAME}} - Settings Page
+ *
+ * Handles the plugin settings page using WordPress Settings API.
+ *
+ * @package {{NAMESPACE}}\Admin
+ */
+
+namespace {{NAMESPACE}}\Admin;
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * {{CLASS_NAME}} class.
+ *
+ * Manages the plugin settings page.
+ */
+class {{CLASS_NAME}} {
+
+	/**
+	 * Option group name.
+	 *
+	 * @var string
+	 */
+	const OPTION_GROUP = '{{OPTION_GROUP}}';
+
+	/**
+	 * Option name in wp_options.
+	 *
+	 * @var string
+	 */
+	const OPTION_NAME = '{{OPTION_NAME}}';
+
+	/**
+	 * Menu slug.
+	 *
+	 * @var string
+	 */
+	const MENU_SLUG = '{{MENU_SLUG}}';
+
+	/**
+	 * Required capability.
+	 *
+	 * @var string
+	 */
+	const CAPABILITY = '{{CAPABILITY}}';
+
+	/**
+	 * Page hook suffix.
+	 *
+	 * @var string
+	 */
+	private static $hook_suffix = '';
+
+	/**
+	 * Add the settings page to admin menu.
+	 *
+	 * @return void
+	 */
+	public static function add_menu(): void {
+		{{MENU_FUNCTION}}
+	}
+
+	/**
+	 * Register settings with WordPress Settings API.
+	 *
+	 * @return void
+	 */
+	public static function register_settings(): void {
+		register_setting(
+			self::OPTION_GROUP,
+			self::OPTION_NAME,
+			array(
+				'type'              => 'array',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_settings' ),
+				'default'           => self::get_defaults(),
+			)
+		);
+
+		add_settings_section(
+			'{{PLUGIN_PREFIX}}_main_section',
+			__( '{{SECTION_TITLE}}', '{{TEXT_DOMAIN}}' ),
+			array( __CLASS__, 'render_section_description' ),
+			self::MENU_SLUG
+		);
+
+{{FIELD_REGISTRATIONS}}
+	}
+
+	/**
+	 * Get default option values.
+	 *
+	 * @return array Default values.
+	 */
+	public static function get_defaults(): array {
+		return array(
+{{FIELD_DEFAULTS}}
+		);
+	}
+
+	/**
+	 * Get current option values with defaults.
+	 *
+	 * @return array Option values.
+	 */
+	public static function get_options(): array {
+		$defaults = self::get_defaults();
+		$options  = get_option( self::OPTION_NAME, array() );
+
+		return wp_parse_args( $options, $defaults );
+	}
+
+	/**
+	 * Get a single option value.
+	 *
+	 * @param string $key     Option key.
+	 * @param mixed  $default Default value if not set.
+	 * @return mixed Option value.
+	 */
+	public static function get_option( string $key, $default = null ) {
+		$options = self::get_options();
+
+		if ( isset( $options[ $key ] ) ) {
+			return $options[ $key ];
+		}
+
+		if ( null !== $default ) {
+			return $default;
+		}
+
+		$defaults = self::get_defaults();
+		return isset( $defaults[ $key ] ) ? $defaults[ $key ] : '';
+	}
+
+	/**
+	 * Render section description.
+	 *
+	 * @return void
+	 */
+	public static function render_section_description(): void {
+		echo '<p>' . esc_html__( '{{SECTION_DESCRIPTION}}', '{{TEXT_DOMAIN}}' ) . '</p>';
+	}
+
+	/**
+	 * Render the settings page.
+	 *
+	 * @return void
+	 */
+	public static function render_page(): void {
+		if ( ! current_user_can( self::CAPABILITY ) ) {
+			return;
+		}
+
+		// Show success message after save.
+		if ( isset( $_GET['settings-updated'] ) ) {
+			add_settings_error(
+				self::OPTION_GROUP . '_messages',
+				self::OPTION_GROUP . '_message',
+				__( 'Settings saved.', '{{TEXT_DOMAIN}}' ),
+				'updated'
+			);
+		}
+
+		settings_errors( self::OPTION_GROUP . '_messages' );
+		?>
+		<div class="wrap">
+			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+			<form action="options.php" method="post">
+				<?php
+				settings_fields( self::OPTION_GROUP );
+				do_settings_sections( self::MENU_SLUG );
+				submit_button( __( 'Save Settings', '{{TEXT_DOMAIN}}' ) );
+				?>
+			</form>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Sanitize settings before save.
+	 *
+	 * @param array $input Raw input values.
+	 * @return array Sanitized values.
+	 */
+	public static function sanitize_settings( array $input ): array {
+		$sanitized = array();
+		$defaults  = self::get_defaults();
+
+{{SANITIZE_FIELDS}}
+
+		return $sanitized;
+	}
+
+	/**
+	 * Enqueue admin assets for the settings page.
+	 *
+	 * @param string $hook_suffix Current admin page hook suffix.
+	 * @return void
+	 */
+	public static function enqueue_assets( string $hook_suffix ): void {
+		if ( self::$hook_suffix !== $hook_suffix ) {
+			return;
+		}
+
+{{ENQUEUE_ASSETS}}
+	}
+
+{{FIELD_CALLBACKS}}
+}
+
+// ============================================================================
+// FIELD CALLBACK TEMPLATES
+// ============================================================================
+
+// TEXT FIELD:
+	/**
+	 * Render text field.
+	 *
+	 * @param array $args Field arguments.
+	 * @return void
+	 */
+	public static function render_{{FIELD_NAME}}_field( array $args ): void {
+		$options = self::get_options();
+		$value   = isset( $options['{{FIELD_NAME}}'] ) ? $options['{{FIELD_NAME}}'] : '';
+		?>
+		<input
+			type="text"
+			id="{{FIELD_NAME}}"
+			name="<?php echo esc_attr( self::OPTION_NAME ); ?>[{{FIELD_NAME}}]"
+			value="<?php echo esc_attr( $value ); ?>"
+			class="regular-text"
+		/>
+		<?php if ( ! empty( $args['description'] ) ) : ?>
+			<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+		<?php endif; ?>
+		<?php
+	}
+
+// TEXTAREA FIELD:
+	/**
+	 * Render textarea field.
+	 *
+	 * @param array $args Field arguments.
+	 * @return void
+	 */
+	public static function render_{{FIELD_NAME}}_field( array $args ): void {
+		$options = self::get_options();
+		$value   = isset( $options['{{FIELD_NAME}}'] ) ? $options['{{FIELD_NAME}}'] : '';
+		?>
+		<textarea
+			id="{{FIELD_NAME}}"
+			name="<?php echo esc_attr( self::OPTION_NAME ); ?>[{{FIELD_NAME}}]"
+			rows="5"
+			cols="50"
+			class="large-text"
+		><?php echo esc_textarea( $value ); ?></textarea>
+		<?php if ( ! empty( $args['description'] ) ) : ?>
+			<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+		<?php endif; ?>
+		<?php
+	}
+
+// CHECKBOX FIELD:
+	/**
+	 * Render checkbox field.
+	 *
+	 * @param array $args Field arguments.
+	 * @return void
+	 */
+	public static function render_{{FIELD_NAME}}_field( array $args ): void {
+		$options = self::get_options();
+		$checked = isset( $options['{{FIELD_NAME}}'] ) ? (bool) $options['{{FIELD_NAME}}'] : false;
+		?>
+		<label for="{{FIELD_NAME}}">
+			<input
+				type="checkbox"
+				id="{{FIELD_NAME}}"
+				name="<?php echo esc_attr( self::OPTION_NAME ); ?>[{{FIELD_NAME}}]"
+				value="1"
+				<?php checked( $checked ); ?>
+			/>
+			<?php echo esc_html( $args['label'] ); ?>
+		</label>
+		<?php if ( ! empty( $args['description'] ) ) : ?>
+			<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+		<?php endif; ?>
+		<?php
+	}
+
+// SELECT FIELD:
+	/**
+	 * Render select field.
+	 *
+	 * @param array $args Field arguments.
+	 * @return void
+	 */
+	public static function render_{{FIELD_NAME}}_field( array $args ): void {
+		$options       = self::get_options();
+		$current_value = isset( $options['{{FIELD_NAME}}'] ) ? $options['{{FIELD_NAME}}'] : '';
+		$choices       = isset( $args['choices'] ) ? $args['choices'] : array();
+		?>
+		<select
+			id="{{FIELD_NAME}}"
+			name="<?php echo esc_attr( self::OPTION_NAME ); ?>[{{FIELD_NAME}}]"
+		>
+			<?php foreach ( $choices as $value => $label ) : ?>
+				<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $current_value, $value ); ?>>
+					<?php echo esc_html( $label ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<?php if ( ! empty( $args['description'] ) ) : ?>
+			<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+		<?php endif; ?>
+		<?php
+	}
+
+// NUMBER FIELD:
+	/**
+	 * Render number field.
+	 *
+	 * @param array $args Field arguments.
+	 * @return void
+	 */
+	public static function render_{{FIELD_NAME}}_field( array $args ): void {
+		$options = self::get_options();
+		$value   = isset( $options['{{FIELD_NAME}}'] ) ? $options['{{FIELD_NAME}}'] : '';
+		$min     = isset( $args['min'] ) ? $args['min'] : '';
+		$max     = isset( $args['max'] ) ? $args['max'] : '';
+		$step    = isset( $args['step'] ) ? $args['step'] : '1';
+		?>
+		<input
+			type="number"
+			id="{{FIELD_NAME}}"
+			name="<?php echo esc_attr( self::OPTION_NAME ); ?>[{{FIELD_NAME}}]"
+			value="<?php echo esc_attr( $value ); ?>"
+			class="small-text"
+			<?php echo '' !== $min ? 'min="' . esc_attr( $min ) . '"' : ''; ?>
+			<?php echo '' !== $max ? 'max="' . esc_attr( $max ) . '"' : ''; ?>
+			step="<?php echo esc_attr( $step ); ?>"
+		/>
+		<?php if ( ! empty( $args['description'] ) ) : ?>
+			<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+		<?php endif; ?>
+		<?php
+	}
+
+// URL FIELD:
+	/**
+	 * Render URL field.
+	 *
+	 * @param array $args Field arguments.
+	 * @return void
+	 */
+	public static function render_{{FIELD_NAME}}_field( array $args ): void {
+		$options = self::get_options();
+		$value   = isset( $options['{{FIELD_NAME}}'] ) ? $options['{{FIELD_NAME}}'] : '';
+		?>
+		<input
+			type="url"
+			id="{{FIELD_NAME}}"
+			name="<?php echo esc_attr( self::OPTION_NAME ); ?>[{{FIELD_NAME}}]"
+			value="<?php echo esc_url( $value ); ?>"
+			class="regular-text"
+			placeholder="https://"
+		/>
+		<?php if ( ! empty( $args['description'] ) ) : ?>
+			<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+		<?php endif; ?>
+		<?php
+	}
+
+// EMAIL FIELD:
+	/**
+	 * Render email field.
+	 *
+	 * @param array $args Field arguments.
+	 * @return void
+	 */
+	public static function render_{{FIELD_NAME}}_field( array $args ): void {
+		$options = self::get_options();
+		$value   = isset( $options['{{FIELD_NAME}}'] ) ? $options['{{FIELD_NAME}}'] : '';
+		?>
+		<input
+			type="email"
+			id="{{FIELD_NAME}}"
+			name="<?php echo esc_attr( self::OPTION_NAME ); ?>[{{FIELD_NAME}}]"
+			value="<?php echo esc_attr( $value ); ?>"
+			class="regular-text"
+		/>
+		<?php if ( ! empty( $args['description'] ) ) : ?>
+			<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+		<?php endif; ?>
+		<?php
+	}
+
+// COLOR PICKER FIELD:
+	/**
+	 * Render color picker field.
+	 *
+	 * @param array $args Field arguments.
+	 * @return void
+	 */
+	public static function render_{{FIELD_NAME}}_field( array $args ): void {
+		$options = self::get_options();
+		$value   = isset( $options['{{FIELD_NAME}}'] ) ? $options['{{FIELD_NAME}}'] : '';
+		?>
+		<input
+			type="text"
+			id="{{FIELD_NAME}}"
+			name="<?php echo esc_attr( self::OPTION_NAME ); ?>[{{FIELD_NAME}}]"
+			value="<?php echo esc_attr( $value ); ?>"
+			class="{{PLUGIN_PREFIX}}-color-picker"
+			data-default-color="<?php echo esc_attr( $args['default'] ); ?>"
+		/>
+		<?php if ( ! empty( $args['description'] ) ) : ?>
+			<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+		<?php endif; ?>
+		<?php
+	}
+
+// ============================================================================
+// SANITIZE FIELD TEMPLATES
+// ============================================================================
+
+// TEXT:
+		if ( isset( $input['{{FIELD_NAME}}'] ) ) {
+			$sanitized['{{FIELD_NAME}}'] = sanitize_text_field( $input['{{FIELD_NAME}}'] );
+		}
+
+// TEXTAREA:
+		if ( isset( $input['{{FIELD_NAME}}'] ) ) {
+			$sanitized['{{FIELD_NAME}}'] = sanitize_textarea_field( $input['{{FIELD_NAME}}'] );
+		}
+
+// CHECKBOX:
+		$sanitized['{{FIELD_NAME}}'] = isset( $input['{{FIELD_NAME}}'] ) ? 1 : 0;
+
+// SELECT:
+		if ( isset( $input['{{FIELD_NAME}}'] ) ) {
+			$valid_choices = array( {{VALID_CHOICES}} );
+			if ( in_array( $input['{{FIELD_NAME}}'], $valid_choices, true ) ) {
+				$sanitized['{{FIELD_NAME}}'] = $input['{{FIELD_NAME}}'];
+			} else {
+				$sanitized['{{FIELD_NAME}}'] = $defaults['{{FIELD_NAME}}'];
+			}
+		}
+
+// NUMBER:
+		if ( isset( $input['{{FIELD_NAME}}'] ) ) {
+			$sanitized['{{FIELD_NAME}}'] = absint( $input['{{FIELD_NAME}}'] );
+		}
+
+// URL:
+		if ( isset( $input['{{FIELD_NAME}}'] ) ) {
+			$sanitized['{{FIELD_NAME}}'] = esc_url_raw( $input['{{FIELD_NAME}}'] );
+		}
+
+// EMAIL:
+		if ( isset( $input['{{FIELD_NAME}}'] ) ) {
+			$sanitized['{{FIELD_NAME}}'] = sanitize_email( $input['{{FIELD_NAME}}'] );
+		}
+
+// COLOR:
+		if ( isset( $input['{{FIELD_NAME}}'] ) ) {
+			$sanitized['{{FIELD_NAME}}'] = sanitize_hex_color( $input['{{FIELD_NAME}}'] );
+		}
+
+// ============================================================================
+// MENU FUNCTION TEMPLATES
+// ============================================================================
+
+// UNDER SETTINGS:
+		self::$hook_suffix = add_options_page(
+			__( '{{PAGE_TITLE}}', '{{TEXT_DOMAIN}}' ),
+			__( '{{MENU_TITLE}}', '{{TEXT_DOMAIN}}' ),
+			self::CAPABILITY,
+			self::MENU_SLUG,
+			array( __CLASS__, 'render_page' )
+		);
+
+// TOP-LEVEL:
+		self::$hook_suffix = add_menu_page(
+			__( '{{PAGE_TITLE}}', '{{TEXT_DOMAIN}}' ),
+			__( '{{MENU_TITLE}}', '{{TEXT_DOMAIN}}' ),
+			self::CAPABILITY,
+			self::MENU_SLUG,
+			array( __CLASS__, 'render_page' ),
+			'dashicons-admin-generic',
+			80
+		);
+
+// UNDER TOOLS:
+		self::$hook_suffix = add_submenu_page(
+			'tools.php',
+			__( '{{PAGE_TITLE}}', '{{TEXT_DOMAIN}}' ),
+			__( '{{MENU_TITLE}}', '{{TEXT_DOMAIN}}' ),
+			self::CAPABILITY,
+			self::MENU_SLUG,
+			array( __CLASS__, 'render_page' )
+		);
+
+// UNDER CUSTOM PARENT:
+		self::$hook_suffix = add_submenu_page(
+			'{{PARENT_SLUG}}',
+			__( '{{PAGE_TITLE}}', '{{TEXT_DOMAIN}}' ),
+			__( '{{MENU_TITLE}}', '{{TEXT_DOMAIN}}' ),
+			self::CAPABILITY,
+			self::MENU_SLUG,
+			array( __CLASS__, 'render_page' )
+		);
+
+// ============================================================================
+// ENQUEUE ASSETS TEMPLATES
+// ============================================================================
+
+// COLOR PICKER:
+		wp_enqueue_style( 'wp-color-picker' );
+		wp_enqueue_script(
+			'{{PLUGIN_PREFIX}}-settings',
+			plugins_url( 'assets/js/settings.js', {{PLUGIN_CONST}}_PLUGIN_FILE ),
+			array( 'wp-color-picker' ),
+			{{PLUGIN_CONST}}_VERSION,
+			true
+		);
+
+// ============================================================================
+// FIELD REGISTRATION TEMPLATE
+// ============================================================================
+
+		add_settings_field(
+			'{{FIELD_NAME}}',
+			__( '{{FIELD_LABEL}}', '{{TEXT_DOMAIN}}' ),
+			array( __CLASS__, 'render_{{FIELD_NAME}}_field' ),
+			self::MENU_SLUG,
+			'{{PLUGIN_PREFIX}}_main_section',
+			array(
+				'label_for'   => '{{FIELD_NAME}}',
+				'description' => __( '{{FIELD_DESCRIPTION}}', '{{TEXT_DOMAIN}}' ),
+				{{FIELD_EXTRA_ARGS}}
+			)
+		);
