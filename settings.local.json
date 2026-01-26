@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(composer init:*)",
+      "Bash(composer require:*)",
+      "Bash(wp scaffold:*)",
+      "Bash(wp i18n make-pot:*)",
+      "Bash(composer phpstan:*)",
+      "Bash(composer phpcs:*)",
+      "Bash(composer test:install:*)",
+      "Bash(composer test:*)"
+    ]
+  }
+}

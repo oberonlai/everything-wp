@@ -35,10 +35,12 @@ This skill automatically performs the following operations:
    - Configures test database (wordpress_test)
    - Creates test examples
    - **Automatically installs test environment**
+   - **Automatically removes redundant CI configs** (`.circleci/`, `.travis.yml`)
 
 4. **Set Up GitHub Actions**
    - Integrated testing and release workflow
    - Automated CI/CD pipeline
+   - Removes CircleCI and Travis CI configs created by WP-CLI scaffold
 
 5. **Create Build Scripts**
    - Cross-platform PHP build script
@@ -65,7 +67,8 @@ The skill will automatically:
 4. **Automatically install test environment**
 5. **Automatically run tests**
 6. **Automatically build plugin**
-7. Display completion message and next steps
+7. **Clean up redundant CI configs** (delete `.circleci/` and `.travis.yml`)
+8. Display completion message and next steps
 
 ## Manual Execution
 
@@ -108,11 +111,21 @@ Test database will be named: `wordpress_test`
 
 ## PHP Version Compatibility
 
-**Important**: The default setup uses PHPUnit 9.6+ which requires **PHP 8.1+** due to dependency requirements (specifically `doctrine/instantiator` 2.0).
+**Important**: The default setup uses PHPUnit 9.6 which is the recommended version for WordPress plugin testing.
 
-### To Support PHP 7.4-8.0
+### Recommended Package Versions (PHP 8.0+)
 
-If you need to support older PHP versions, you must:
+```json
+"require-dev": {
+  "phpunit/phpunit": "^9.6",
+  "wp-phpunit/wp-phpunit": "^6.9",
+  "yoast/phpunit-polyfills": "^2.0"
+}
+```
+
+### To Support PHP 7.4
+
+If you need to support PHP 7.4, you must:
 
 1. **Limit PHPUnit version** in `composer.json`:
    ```json
@@ -138,9 +151,14 @@ If you need to support older PHP versions, you must:
 
 ### PHPUnit Version Compatibility
 
-- PHPUnit 9.3-9.5 → PHP 7.4-8.0
-- PHPUnit 9.6+ → PHP 8.0+ (requires PHP 8.1+ due to dependencies)
-- PHPUnit 10+ → PHP 8.1+
+| PHPUnit Version | PHP Version | yoast/phpunit-polyfills | WordPress Compatibility |
+|-----------------|-------------|-------------------------|-------------------------|
+| ^9.3 - ^9.5     | 7.4 - 8.0   | ^1.0                    | Full                    |
+| ^9.6            | 8.0+        | ^2.0                    | Full (Recommended)      |
+| ^10.x           | 8.1+        | Not supported           | Not compatible          |
+| ^11.x           | 8.2+        | ^4.0                    | Partial issues          |
+
+**Note**: PHPUnit 10.x is NOT supported by yoast/phpunit-polyfills. PHPUnit 11.x has compatibility issues with WordPress test suite (`parseTestMethodAnnotations` removed). Use PHPUnit 9.6 for best compatibility.
 
 ## GitHub Actions Configuration
 
@@ -164,6 +182,19 @@ This allows GitHub Actions to create releases and upload assets.
 ### Version Extraction
 
 The workflow extracts version numbers directly from Git tags (e.g., `v1.0.0`) rather than parsing plugin files, ensuring consistency.
+
+## PHPCS Configuration for PSR-4
+
+When using PSR-4 autoloading with the `src/` directory, WordPress file naming rules need to be excluded. Add this to `.phpcs.xml.dist`:
+
+```xml
+<!-- Exclude file naming rules for PSR-4 autoloaded classes in src directory -->
+<rule ref="WordPress.Files.FileName">
+    <exclude-pattern>/src/*</exclude-pattern>
+</rule>
+```
+
+This allows PascalCase class file names (e.g., `Bootstrap.php`) required by PSR-4 instead of WordPress-style `class-bootstrap.php`.
 
 ## Troubleshooting
 

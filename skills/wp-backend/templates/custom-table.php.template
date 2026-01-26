@@ -322,7 +322,7 @@ class {{REPOSITORY_CLASS}} {
 	 * @param array $data Column data as associative array.
 	 * @return int|false Insert ID on success, false on failure.
 	 */
-	public function create( array $data ) {
+	public function create( array $data ): int|false {
 		global $wpdb;
 
 		$table_name = $this->get_table_name();
@@ -345,7 +345,7 @@ class {{REPOSITORY_CLASS}} {
 	 * @param array $data Column data to update.
 	 * @return int|false Number of rows updated, false on error.
 	 */
-	public function update( int $id, array $data ) {
+	public function update( int $id, array $data ): int|false {
 		global $wpdb;
 
 		$table_name    = $this->get_table_name();
@@ -373,7 +373,7 @@ class {{REPOSITORY_CLASS}} {
 	 * @param int $id Row ID.
 	 * @return int|false Number of rows deleted, false on error.
 	 */
-	public function delete( int $id ) {
+	public function delete( int $id ): int|false {
 		global $wpdb;
 
 		$table_name = $this->get_table_name();

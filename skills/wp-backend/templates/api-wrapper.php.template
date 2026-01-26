@@ -82,7 +82,7 @@ class {{CLASS_NAME}} {
 	 * @param array  $params   Query parameters.
 	 * @return array|\WP_Error Response data or WP_Error on failure.
 	 */
-	public function get( string $endpoint, array $params = array() ) {
+	public function get( string $endpoint, array $params = array() ): array|\WP_Error {
 		$url = $this->build_url( $endpoint, $params );
 		return $this->request( 'GET', $url );
 	}
@@ -94,7 +94,7 @@ class {{CLASS_NAME}} {
 	 * @param array  $data     Request body data.
 	 * @return array|\WP_Error Response data or WP_Error on failure.
 	 */
-	public function post( string $endpoint, array $data = array() ) {
+	public function post( string $endpoint, array $data = array() ): array|\WP_Error {
 		$url = $this->build_url( $endpoint );
 		return $this->request( 'POST', $url, $data );
 	}
@@ -106,7 +106,7 @@ class {{CLASS_NAME}} {
 	 * @param array  $data     Request body data.
 	 * @return array|\WP_Error Response data or WP_Error on failure.
 	 */
-	public function put( string $endpoint, array $data = array() ) {
+	public function put( string $endpoint, array $data = array() ): array|\WP_Error {
 		$url = $this->build_url( $endpoint );
 		return $this->request( 'PUT', $url, $data );
 	}
@@ -118,7 +118,7 @@ class {{CLASS_NAME}} {
 	 * @param array  $data     Request body data.
 	 * @return array|\WP_Error Response data or WP_Error on failure.
 	 */
-	public function patch( string $endpoint, array $data = array() ) {
+	public function patch( string $endpoint, array $data = array() ): array|\WP_Error {
 		$url = $this->build_url( $endpoint );
 		return $this->request( 'PATCH', $url, $data );
 	}
@@ -129,7 +129,7 @@ class {{CLASS_NAME}} {
 	 * @param string $endpoint API endpoint.
 	 * @return array|\WP_Error Response data or WP_Error on failure.
 	 */
-	public function delete( string $endpoint ) {
+	public function delete( string $endpoint ): array|\WP_Error {
 		$url = $this->build_url( $endpoint );
 		return $this->request( 'DELETE', $url );
 	}
@@ -168,7 +168,7 @@ class {{CLASS_NAME}} {
 	 * @param array  $data   Request body data.
 	 * @return array|\WP_Error Response data or WP_Error on failure.
 	 */
-	private function request( string $method, string $url, array $data = array() ) {
+	private function request( string $method, string $url, array $data = array() ): array|\WP_Error {
 		$args = array(
 			'method'  => $method,
 			'timeout' => self::TIMEOUT,
@@ -210,7 +210,7 @@ class {{CLASS_NAME}} {
 	 * @param array|\WP_Error $response HTTP response.
 	 * @return array|\WP_Error Parsed data or WP_Error.
 	 */
-	private function parse_response( $response ) {
+	private function parse_response( $response ): array|\WP_Error {
 		if ( is_wp_error( $response ) ) {
 			return $response;
 		}

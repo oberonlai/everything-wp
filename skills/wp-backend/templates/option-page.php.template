@@ -121,7 +121,7 @@ class {{CLASS_NAME}} {
 	 * @param mixed  $default Default value if not set.
 	 * @return mixed Option value.
 	 */
-	public static function get_option( string $key, $default = null ) {
+	public static function get_option( string $key, $default = null ): mixed {
 		$options = self::get_options();
 
 		if ( isset( $options[ $key ] ) ) {

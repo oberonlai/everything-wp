@@ -47,7 +47,7 @@ class Deactivator {
 		self::clear_transients();
 
 		// Trigger deactivation hook for other plugins/themes to hook into.
-		do_action( '{{PLUGIN_SLUG}}_deactivated' );
+		do_action( '{{PLUGIN_FUNCTION_PREFIX}}_deactivated' );
 	}
 
 	/**
@@ -56,11 +56,13 @@ class Deactivator {
 	 * @return void
 	 */
 	private static function clear_scheduled_events(): void {
+		// phpcs:disable Squiz.PHP.CommentedOutCode.Found, Squiz.Commenting.InlineComment.InvalidEndChar
 		// Example: Clear scheduled cron jobs.
-		// $timestamp = wp_next_scheduled( '{{PLUGIN_SLUG}}_daily_cron' );
+		// $timestamp = wp_next_scheduled( '{{PLUGIN_FUNCTION_PREFIX}}_daily_cron' );
 		// if ( $timestamp ) {
-		//     wp_unschedule_event( $timestamp, '{{PLUGIN_SLUG}}_daily_cron' );
+		// wp_unschedule_event( $timestamp, '{{PLUGIN_FUNCTION_PREFIX}}_daily_cron' );
 		// }
+		// phpcs:enable Squiz.PHP.CommentedOutCode.Found, Squiz.Commenting.InlineComment.InvalidEndChar
 	}
 
 	/**
@@ -69,7 +71,9 @@ class Deactivator {
 	 * @return void
 	 */
 	private static function clear_transients(): void {
+		// phpcs:disable Squiz.PHP.CommentedOutCode.Found, Squiz.Commenting.InlineComment.InvalidEndChar
 		// Example: Delete plugin transients.
-		// delete_transient( '{{PLUGIN_SLUG}}_cache' );
+		// delete_transient( '{{PLUGIN_FUNCTION_PREFIX}}_cache' );
+		// phpcs:enable Squiz.PHP.CommentedOutCode.Found, Squiz.Commenting.InlineComment.InvalidEndChar
 	}
 }

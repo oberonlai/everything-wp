@@ -317,9 +317,11 @@ Based on user selection, install the corresponding packages:
 
 | Tool | Composer Command |
 |------|------------------|
-| PHPUnit | `composer require --dev phpunit/phpunit wp-phpunit/wp-phpunit yoast/phpunit-polyfills` |
+| PHPUnit | `composer require --dev phpunit/phpunit:^9.6 wp-phpunit/wp-phpunit:^6.9 yoast/phpunit-polyfills:^2.0` |
 | PHPStan | `composer require --dev phpstan/phpstan szepeviktor/phpstan-wordpress` |
 | PHP_CodeSniffer + WPCS | `composer require --dev squizlabs/php_codesniffer wp-coding-standards/wpcs phpcompatibility/phpcompatibility-wp dealerdirect/phpcodesniffer-composer-installer` |
+
+**Note**: PHPUnit 9.6 is recommended for WordPress compatibility. PHPUnit 10/11 have compatibility issues with the WordPress test suite.
 
 **Build Script Setup:**
 
@@ -338,7 +340,15 @@ If "Yes" selected for OOP structure:
 5. Update main plugin file to use OOP structure:
    - Add autoloader require
    - Replace procedural hooks with class calls
-   - Use `Bootstrap::get_instance()` for initialization
+   - Use anonymous function wrapper for `plugins_loaded` hook (PHPStan compatibility):
+     ```php
+     add_action(
+         'plugins_loaded',
+         function (): void {
+             Bootstrap::get_instance();
+         }
+     );
+     ```
    - Use `Activator::activate()` for activation hook
    - Use `Deactivator::deactivate()` for deactivation hook
 6. Configure PSR-4 autoload in composer.json:
@@ -456,7 +466,7 @@ After generating files:
 
    If PHPUnit selected:
    ```bash
-   composer require --dev phpunit/phpunit wp-phpunit/wp-phpunit yoast/phpunit-polyfills
+   composer require --dev phpunit/phpunit:^9.6 wp-phpunit/wp-phpunit:^6.9 yoast/phpunit-polyfills:^2.0
    ```
 
    If PHPStan selected:
@@ -488,7 +498,13 @@ After generating files:
    wp scaffold plugin-tests {{PLUGIN_SLUG}}
    ```
 
-5. **Create configuration files** (based on installed tools):
+5. **Clean up redundant CI configs** (WP-CLI scaffold creates these, but we use GitHub Actions):
+   ```bash
+   rm -rf .circleci
+   rm -f .travis.yml
+   ```
+
+6. **Create configuration files** (based on installed tools):
 
    If PHPStan selected, create `phpstan.neon`:
    ```neon
@@ -507,25 +523,65 @@ After generating files:
    ```xml
    <?xml version="1.0"?>
    <ruleset name="WordPress Plugin Coding Standards">
-       <rule ref="WordPress"/>
+       <description>A custom set of rules to check for a WordPress plugin.</description>
        <file>.</file>
        <exclude-pattern>/vendor/*</exclude-pattern>
        <exclude-pattern>/tests/*</exclude-pattern>
+       <exclude-pattern>/node_modules/*</exclude-pattern>
+       <exclude-pattern>/.claude/*</exclude-pattern>
+       <exclude-pattern>/scripts/*</exclude-pattern>
+       <exclude-pattern>/build/*</exclude-pattern>
+       <exclude-pattern>/bin/*</exclude-pattern>
+
+       <arg value="sp"/>
+       <arg name="basepath" value="."/>
+       <arg name="colors"/>
+       <arg name="extensions" value="php"/>
+       <arg name="parallel" value="8"/>
+
+       <config name="testVersion" value="8.0-"/>
+       <rule ref="PHPCompatibilityWP"/>
+
+       <config name="minimum_wp_version" value="6.4"/>
+       <rule ref="WordPress"/>
+
+       <!-- Exclude file naming rules for PSR-4 autoloaded classes in src directory -->
+       <rule ref="WordPress.Files.FileName">
+           <exclude-pattern>/src/*</exclude-pattern>
+       </rule>
+
+       <rule ref="WordPress.WP.I18n">
+           <properties>
+               <property name="text_domain" type="array">
+                   <element value="{{TEXT_DOMAIN}}"/>
+               </property>
+           </properties>
+       </rule>
+
+       <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+           <properties>
+               <property name="prefixes" type="array">
+                   <element value="{{PLUGIN_FUNCTION_PREFIX}}"/>
+                   <element value="{{NAMESPACE}}"/>
+                   <element value="{{PLUGIN_PREFIX}}"/>
+               </property>
+           </properties>
+       </rule>
    </ruleset>
    ```
 
-6. **Verify installation** (if PHPUnit selected):
+7. **Verify installation** (if PHPUnit selected):
    ```bash
    composer test:install
    composer test
    ```
 
-7. **Build to verify** (if local build script selected):
+8. **Build to verify** (if local build script selected):
    ```bash
    composer build
    ```
 
-8. **Setup Internationalization (i18n)**:
+9. **Setup Internationalization (i18n)**:
    ```bash
    # Create languages directory
    mkdir -p languages

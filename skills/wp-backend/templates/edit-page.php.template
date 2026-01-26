@@ -210,7 +210,7 @@ class {{CLASS_NAME}} {
 	 * @param mixed  $default Default value.
 	 * @return mixed Field value.
 	 */
-	private function get_field_value( string $field, $default = '' ) {
+	private function get_field_value( string $field, $default = '' ): mixed {
 		// First check POST data (for form resubmission).
 		if ( isset( $_POST[ $field ] ) ) {
 			return sanitize_text_field( wp_unslash( $_POST[ $field ] ) );

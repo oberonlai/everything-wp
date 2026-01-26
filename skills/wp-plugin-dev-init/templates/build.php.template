@@ -51,13 +51,15 @@ if (is_dir($buildDir)) {
 mkdir($buildDir, 0755, true);
 mkdir($tempDir, 0755, true);
 
-// Files and directories to exclude
-$excludes = [
+// Files and directories to exclude.
+$excludes = array(
     '.git',
     '.github',
     '.gitignore',
     '.phpcs.xml.dist',
     '.phpunit.result.cache',
+    '.phpunit.cache',
+    'phpstan.neon',
     'node_modules',
     'tests',
     'bin',
@@ -77,7 +79,9 @@ $excludes = [
     '.playwright-mcp',
     'scripts',
     '.agent',
-];
+    '.circleci',
+    '.travis.yml',
+);
 
 // Build rsync exclude parameters
 $excludeParams = array_map(function($item) {

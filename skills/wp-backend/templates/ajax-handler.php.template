@@ -148,7 +148,7 @@ class {{CLASS_NAME}} {
 	 * @param array $params Validated parameters.
 	 * @return array|\WP_Error Result data or WP_Error on failure.
 	 */
-	private static function process( array $params ) {
+	private static function process( array $params ): array|\WP_Error {
 		// TODO: Implement your business logic here.
 		// Example:
 		// $repository = new \{{NAMESPACE}}\Repository\{{REPOSITORY_CLASS}}();
