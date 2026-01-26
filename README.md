@@ -219,6 +219,6 @@ GPL-2.0 or later
 
 ## 🙏 Credits
 
-Inspired by [everything-claude-code](https://github.com/anthropics/everything-claude-code).
+Inspired by [everything-claude-code](https://github.com/affaan-m/everything-claude-code).
 
 Built for the WordPress community.
