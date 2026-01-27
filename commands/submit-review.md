@@ -2,6 +2,8 @@
 description: Review plugin for WordPress.org submission compliance including license, readme.txt, forbidden files, and privacy checks
 required_skills:
   - wp-backend
+invokes_agent: submission-reviewer
+agent_mode: review
 ---
 
 # Submit Review Command
