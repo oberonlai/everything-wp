@@ -21,10 +21,10 @@ Copy the `everything-wp` directory to your AI assistant's configuration folder:
 
 ```bash
 # For Cursor
-cp -r everything-wp ~/.cursor/
+cp -r everything-wp/* ~/.cursor/
 
 # For Claude Code
-cp -r everything-wp ~/.claude/
+cp -r everything-wp/* ~/.claude/
 ```
 
 ### For Gemini / Antigravity
