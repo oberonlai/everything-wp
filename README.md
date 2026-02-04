@@ -8,7 +8,7 @@ Everything WP is designed to work with AI coding assistants (like Claude, Cursor
 
 ### Key Features
 
-- **15 Commands** - Interactive workflows for common plugin development tasks
+- **16 Commands** - Interactive workflows for common plugin development tasks
 - **3 Skill Areas** - Deep knowledge bases for backend, frontend, and plugin initialization
 - **1 Agent** - Unified code quality agent for testing and analysis
 - **WordPress.org Ready** - Built-in submission review and compliance checks
@@ -61,6 +61,7 @@ Add the skills path to your configuration.
 | Command | Description |
 |---------|-------------|
 | `/plan` | Create implementation plan before coding |
+| `/todo` | Execute development tasks from spec file with progress tracking |
 | `/submit-review` | Review plugin for WordPress.org submission compliance |
 
 ## 📚 Skills
@@ -159,6 +160,36 @@ AI: Running WordPress.org submission review...
     Action required: Remove .DS_Store before submission
 ```
 
+### Executing Tasks from Spec
+
+```
+User: /todo spec/booking-system/user-registration.md
+
+AI: Reading spec file...
+
+    📋 Found 4 tasks in user-registration.md
+
+    Scanning src/ folder for current architecture...
+    ✅ Found existing patterns: Repository, Service, Controller
+
+    Task 1/4: Create User entity class
+    [Implements src/Entity/User.php]
+    ✅ Task 1 completed - Updated spec checkbox
+
+    Task 2/4: Create UserRepository class
+    [Implements src/Repository/UserRepository.php]
+    ✅ Task 2 completed - Updated spec checkbox
+
+    ...
+
+    ╔═══════════════════════════════════════╗
+    ║      Task Execution Complete          ║
+    ╠═══════════════════════════════════════╣
+    ║ Completed │ 4/4 tasks                 ║
+    ║ Spec File │ Updated with progress     ║
+    ╚═══════════════════════════════════════╝
+```
+
 ## 📁 Directory Structure
 
 ```
@@ -178,6 +209,7 @@ everything-wp/
 │   ├── analyse.md
 │   ├── lint.md
 │   ├── plan.md
+│   ├── todo.md
 │   └── submit-review.md
 │
 ├── skills/             # Knowledge bases
