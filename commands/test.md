@@ -151,7 +151,7 @@ Failure analysis:
 
 - `/test-generate` - Generate tests for existing code
 - `/verify` - Run all quality checks including tests
-- `/analyse` - Run PHPStan before tests
+- `composer phpstan` - Run PHPStan static analysis directly (no dedicated command)
 
 ## Related Agent
 

@@ -266,7 +266,7 @@ After passing all checks, the command provides a final checklist:
 ## Related Commands
 
 - `/verify` - Run code quality checks (PHPStan, PHPUnit, PHPCS)
-- `/lint` - Check code style
+- `/review` - Diff-scoped senior code review before submission
 - `/init-plugin` - Set up plugin development environment
 
 ## Related Skills

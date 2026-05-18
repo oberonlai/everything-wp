@@ -210,9 +210,9 @@ Run `/verify` in GitHub Actions:
 
 ## Related Commands
 
-- `/analyse` - Run only PHPStan
-- `/test` - Run only PHPUnit
-- `/lint` - Run only PHPCS
+- `/test` - Run only PHPUnit (useful during dev iteration)
+- `/review` - Diff-scoped senior code review (run before `/verify`)
+- `composer phpstan` / `composer phpcs` - Run individual tools directly
 - `/init-plugin` - Set up testing environment
 
 ## Related Agent
