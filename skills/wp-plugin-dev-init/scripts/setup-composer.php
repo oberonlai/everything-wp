@@ -79,18 +79,22 @@ foreach ( $desiredRequireDev as $package => $version ) {
 // Add scripts — conflict-aware merge: existing keys with different values trigger a warning
 // and are left untouched. Caller can re-run with the old composer.json modified by hand.
 $testInstallCmd = "bash bin/install-wp-tests.sh $dbName $dbUser '$dbPass' $dbHost latest";
+// build flow: 只清 build/、安裝 production deps (本身不動 vendor，是 composer 自行管理)、
+// 跑 build script。post-build 重灌完整 deps，回到開發狀態。
+// 重要：build:clean 只刪 build/，**絕不刪 vendor/** — vendor 由 composer install --no-dev /
+// composer install 切換，外部腳本動 vendor 太危險（被中斷就壞）。
 $desiredScripts = [
     'test' => 'phpunit',
     'test:install' => $testInstallCmd,
     'build' => [
         '@build:clean',
         '@build:prod',
-        'php scripts/build.php'
+        'php scripts/build.php',
+        '@build:dev'
     ],
     'build:prod' => 'composer install --no-dev --optimize-autoloader',
     'build:dev' => 'composer install',
-    'build:clean' => 'rm -rf build vendor',
-    'post-build' => ['@build:dev']
+    'build:clean' => 'rm -rf build'
 ];
 
 $composer['scripts'] = $composer['scripts'] ?? [];
@@ -108,11 +112,11 @@ foreach ( $desiredScripts as $key => $value ) {
 // Same conflict-aware merge for scripts-descriptions.
 $desiredDescriptions = [
     'test' => 'Run PHPUnit tests',
-    'test:install' => 'Install WordPress testing environment (run once)',
+    'test:install' => 'Install WordPress testing environment (drops & recreates test DB; run once)',
     'build' => 'Build release version with production dependencies',
     'build:prod' => 'Install production dependencies only',
     'build:dev' => 'Install all dependencies including dev tools',
-    'build:clean' => 'Clean build files and vendor directory'
+    'build:clean' => 'Clean build/ directory (does NOT touch vendor/)'
 ];
 $composer['scripts-descriptions'] = $composer['scripts-descriptions'] ?? [];
 foreach ( $desiredDescriptions as $key => $value ) {

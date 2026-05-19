@@ -392,12 +392,16 @@ If "Yes" selected for build script:
 
 **OOP Structure Setup:**
 
-If "Yes" selected for OOP structure:
+> **Mode gating** (overrides anything below):
+> - **Greenfield mode**: do all steps below as written.
+> - **Augment mode**: only do steps 1–4 (create `src/` and the three classes) IF `src/Bootstrap.php` does not already exist. **Skip step 5 entirely — never modify an existing main plugin file.** Step 6 (PSR-4 in composer.json) is handled safely by `setup-composer.php`, which deep-merges and preserves existing namespaces. After classes are created, print instructions for the user to wire them into their main file manually.
+
+If "Yes" selected for OOP structure (Greenfield, or Augment with empty `src/`):
 1. Create `src/` directory
 2. Create `src/Bootstrap.php` from `Bootstrap.php.template`
 3. Create `src/Activator.php` from `Activator.php.template`
 4. Create `src/Deactivator.php` from `Deactivator.php.template`
-5. Update main plugin file to use OOP structure:
+5. **Greenfield only** — Update main plugin file to use OOP structure:
    - Add autoloader require
    - Replace procedural hooks with class calls
    - Use anonymous function wrapper for `plugins_loaded` hook (PHPStan compatibility):
@@ -411,6 +415,18 @@ If "Yes" selected for OOP structure:
      ```
    - Use `Activator::activate()` for activation hook
    - Use `Deactivator::deactivate()` for deactivation hook
+
+   **Augment mode**: do NOT modify the main file. Instead, print a snippet for the user to paste in manually, e.g.:
+   ```
+   The following classes are now available in src/.
+   Paste this into your main plugin file when you're ready:
+
+       require_once __DIR__ . '/vendor/autoload.php';
+       register_activation_hook( __FILE__, [ \<NS>\Activator::class, 'activate' ] );
+       register_deactivation_hook( __FILE__, [ \<NS>\Deactivator::class, 'deactivate' ] );
+       add_action( 'plugins_loaded', fn() => \<NS>\Bootstrap::get_instance() );
+   ```
+
 6. Configure PSR-4 autoload in composer.json:
    ```json
    {
