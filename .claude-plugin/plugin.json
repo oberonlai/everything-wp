@@ -1,7 +1,7 @@
 {
   "name": "everything-wp",
   "description": "AI-powered WordPress plugin development toolkit. Provides an end-to-end workflow (plan → todo → review → verify) with 15 commands, 5 agents (planner, task-executor with TDD support, code-reviewer, code-quality, submission-reviewer), and skill knowledge bases for backend/frontend/init.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "Oberon Lai"
   },
