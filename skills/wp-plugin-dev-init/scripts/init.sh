@@ -200,6 +200,9 @@ php "$SCRIPT_DIR/setup-composer.php" \
 
 # 8. 安裝依賴
 echo -e "${BLUE}📥 安裝 Composer 依賴...${NC}"
+if [ -f "composer.lock" ]; then
+    echo -e "${YELLOW}    ⚠️  既有 composer.lock 可能會重新解析；如不希望變動 lockfile，請先 Ctrl+C 並改用 composer update --lock。${NC}"
+fi
 composer install
 
 # 9. 調整 bootstrap.php（冪等：已含 polyfills 載入就跳過；插入時不重複 <?php 標籤）
@@ -256,6 +259,8 @@ grep -qxF 'phpunit.xml' .gitignore || echo 'phpunit.xml' >> .gitignore
 # 本機環境的個人覆寫檔 / 暫存設定 — 不入版控
 grep -qxF '.wp-env.override.json' .gitignore || echo '.wp-env.override.json' >> .gitignore
 grep -qxF 'local-config.php' .gitignore || echo 'local-config.php' >> .gitignore
+# 備份檔（由 prompt_overwrite 與 setup-composer.php 產生）
+grep -qxF '*.bak.*' .gitignore || echo '*.bak.*' >> .gitignore
 
 # 14. 偵測本機環境 (wp-env / DDEV) — 若使用容器化環境，跳過 host 端的 test:install
 USE_CONTAINER_ENV=false

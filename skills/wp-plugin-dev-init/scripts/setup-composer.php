@@ -20,10 +20,30 @@ $dbHost = $argv[7];
 
 $composerFile = $projectDir . '/composer.json';
 
-// Read existing composer.json or create new one
-$composer = file_exists($composerFile) 
-    ? json_decode(file_get_contents($composerFile), true)
-    : [];
+// Read existing composer.json or create new one.
+// Guard against malformed JSON — refuse to proceed rather than blindly overwrite.
+$composer = [];
+if (file_exists($composerFile)) {
+    $rawContent = file_get_contents($composerFile);
+    $composer = json_decode($rawContent, true);
+    if ($composer === null && json_last_error() !== JSON_ERROR_NONE) {
+        fwrite(STDERR, "❌ 既有 composer.json 解析失敗: " . json_last_error_msg() . "\n");
+        fwrite(STDERR, "   為避免破壞檔案，請先手動修復 composer.json 再重跑。\n");
+        exit(1);
+    }
+    if (!is_array($composer)) {
+        fwrite(STDERR, "❌ 既有 composer.json 內容不是 JSON 物件。\n");
+        exit(1);
+    }
+
+    // Backup before any modification so the user can recover even without git.
+    $backupFile = $composerFile . '.bak.' . time();
+    if (!copy($composerFile, $backupFile)) {
+        fwrite(STDERR, "❌ 無法建立備份: $backupFile\n");
+        exit(1);
+    }
+    fwrite(STDERR, "ℹ️  已備份原 composer.json 至: " . basename($backupFile) . "\n");
+}
 
 // Ensure basic structure
 if (!isset($composer['require'])) {
