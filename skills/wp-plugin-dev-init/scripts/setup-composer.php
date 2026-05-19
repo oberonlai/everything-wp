@@ -30,14 +30,18 @@ if (!isset($composer['require'])) {
     $composer['require'] = ['php' => '>=8.0'];
 }
 
-// Add autoload
-$composer['autoload'] = [
-    'psr-4' => [
-        $namespace . '\\' => $autoloadDir . '/'
-    ]
-];
+// Add autoload — deep-merge psr-4 instead of replacing entire autoload block.
+// Existing namespaces (e.g. test fixtures, second namespace) are preserved.
+$composer['autoload'] = $composer['autoload'] ?? [];
+$composer['autoload']['psr-4'] = $composer['autoload']['psr-4'] ?? [];
+$psr4Key = $namespace . '\\';
+if ( isset( $composer['autoload']['psr-4'][ $psr4Key ] ) && $composer['autoload']['psr-4'][ $psr4Key ] !== $autoloadDir . '/' ) {
+    fwrite( STDERR, "⚠️  autoload.psr-4['$psr4Key'] 已存在且指向不同路徑 ('{$composer['autoload']['psr-4'][$psr4Key]}'); 保留原值，未覆蓋。\n" );
+} else {
+    $composer['autoload']['psr-4'][ $psr4Key ] = $autoloadDir . '/';
+}
 
-// Add require-dev
+// Add require-dev — array_merge keeps later values, safe to add/update package versions.
 $composer['require-dev'] = array_merge(
     $composer['require-dev'] ?? [],
     [
@@ -46,38 +50,50 @@ $composer['require-dev'] = array_merge(
     ]
 );
 
-// Add scripts
+// Add scripts — conflict-aware merge: existing keys with different values trigger a warning
+// and are left untouched. Caller can re-run with the old composer.json modified by hand.
 $testInstallCmd = "bash bin/install-wp-tests.sh $dbName $dbUser '$dbPass' $dbHost latest";
+$desiredScripts = [
+    'test' => 'phpunit',
+    'test:install' => $testInstallCmd,
+    'build' => [
+        '@build:clean',
+        '@build:prod',
+        'php scripts/build.php'
+    ],
+    'build:prod' => 'composer install --no-dev --optimize-autoloader',
+    'build:dev' => 'composer install',
+    'build:clean' => 'rm -rf build vendor',
+    'post-build' => ['@build:dev']
+];
 
-$composer['scripts'] = array_merge(
-    $composer['scripts'] ?? [],
-    [
-        'test' => 'phpunit',
-        'test:install' => $testInstallCmd,
-        'build' => [
-            '@build:clean',
-            '@build:prod',
-            'php scripts/build.php'
-        ],
-        'build:prod' => 'composer install --no-dev --optimize-autoloader',
-        'build:dev' => 'composer install',
-        'build:clean' => 'rm -rf build vendor',
-        'post-build' => ['@build:dev']
-    ]
-);
+$composer['scripts'] = $composer['scripts'] ?? [];
+foreach ( $desiredScripts as $key => $value ) {
+    if ( ! isset( $composer['scripts'][ $key ] ) ) {
+        $composer['scripts'][ $key ] = $value;
+        continue;
+    }
+    if ( $composer['scripts'][ $key ] !== $value ) {
+        fwrite( STDERR, "⚠️  composer.json scripts['$key'] 已存在且內容不同; 保留原值，未覆蓋。\n" );
+        fwrite( STDERR, "    若要採用新值，請手動編輯 composer.json 或刪除該 key 後重跑。\n" );
+    }
+}
 
-// Add script descriptions
-$composer['scripts-descriptions'] = array_merge(
-    $composer['scripts-descriptions'] ?? [],
-    [
-        'test' => 'Run PHPUnit tests',
-        'test:install' => 'Install WordPress testing environment (run once)',
-        'build' => 'Build release version with production dependencies',
-        'build:prod' => 'Install production dependencies only',
-        'build:dev' => 'Install all dependencies including dev tools',
-        'build:clean' => 'Clean build files and vendor directory'
-    ]
-);
+// Same conflict-aware merge for scripts-descriptions.
+$desiredDescriptions = [
+    'test' => 'Run PHPUnit tests',
+    'test:install' => 'Install WordPress testing environment (run once)',
+    'build' => 'Build release version with production dependencies',
+    'build:prod' => 'Install production dependencies only',
+    'build:dev' => 'Install all dependencies including dev tools',
+    'build:clean' => 'Clean build files and vendor directory'
+];
+$composer['scripts-descriptions'] = $composer['scripts-descriptions'] ?? [];
+foreach ( $desiredDescriptions as $key => $value ) {
+    if ( ! isset( $composer['scripts-descriptions'][ $key ] ) ) {
+        $composer['scripts-descriptions'][ $key ] = $value;
+    }
+}
 
 // Add config
 $composer['config'] = array_merge(
