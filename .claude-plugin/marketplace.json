@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "everything-wp",
+  "description": "AI-powered WordPress plugin development toolkit for Claude Code",
+  "owner": {
+    "name": "Oberon Lai"
+  },
+  "plugins": [
+    {
+      "name": "everything-wp",
+      "description": "End-to-end WordPress plugin development workflow: plan → todo (TDD) → review → verify. Includes 15 commands, 5 agents, and skill knowledge bases.",
+      "category": "development",
+      "source": "./",
+      "homepage": "https://github.com/oberonlai/everything-wp",
+      "tags": ["wordpress", "plugin-development", "tdd", "code-review", "phpunit"]
+    }
+  ]
+}

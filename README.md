@@ -16,15 +16,26 @@ Everything WP is designed to work with AI coding assistants (like Claude, Cursor
 
 ## 📦 Installation
 
-### For Cursor / Claude
+### Claude Code (recommended)
 
-Copy the `everything-wp` directory to your AI assistant's configuration folder:
+Install as a Claude Code plugin:
+
+```
+/plugin marketplace add oberonlai/everything-wp
+/plugin install everything-wp@everything-wp
+```
+
+After install, all commands, agents, and skills are immediately available.
+
+### Manual install (Cursor / other tools)
+
+Copy the directory contents to your AI assistant's configuration folder:
 
 ```bash
 # For Cursor
 cp -r everything-wp/* ~/.cursor/
 
-# For Claude Code
+# For Claude Code (manual, instead of plugin install)
 cp -r everything-wp/* ~/.claude/
 ```
 
