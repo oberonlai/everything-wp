@@ -81,6 +81,12 @@ $excludes = array(
     '.agent',
     '.circleci',
     '.travis.yml',
+    // Local environment configs (wp-env / DDEV) — never ship in release zip.
+    '.wp-env.json',
+    '.wp-env.override.json',
+    '.wp-env',
+    '.ddev',
+    'local-config.php',
 );
 
 // Build rsync exclude parameters

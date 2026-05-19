@@ -493,6 +493,31 @@ After generating files:
    }
    ```
 
+   **Note on local environment compatibility (wp-env / DDEV):**
+
+   The default `test:install` connects to `root@localhost` (native MySQL). If the user runs tests against a containerized environment, they must execute the install / test commands inside the container so the MySQL credentials resolve correctly:
+
+   ```bash
+   # wp-env
+   wp-env run cli composer test:install
+   wp-env run cli composer test
+
+   # DDEV
+   ddev exec composer test:install
+   ddev exec composer test
+   ```
+
+   Alternatively, override the credentials inline:
+   ```bash
+   # wp-env (uses 'root'/'password' on the host-mapped port)
+   bash bin/install-wp-tests.sh wordpress_test root password 127.0.0.1:<port> latest
+
+   # DDEV (from host; check `ddev describe` for the port)
+   bash bin/install-wp-tests.sh wordpress_test db db 127.0.0.1:<port> latest
+   ```
+
+   The scaffold itself does not generate `.wp-env.json` or `.ddev/` configs — those are the user's choice. Build script and PHPCS configs already exclude these folders so they won't leak into release zips or trigger style violations.
+
 4. **Run WP-CLI scaffold** (if PHPUnit selected and WP-CLI available):
    ```bash
    wp scaffold plugin-tests {{PLUGIN_SLUG}}
@@ -532,6 +557,9 @@ After generating files:
        <exclude-pattern>/scripts/*</exclude-pattern>
        <exclude-pattern>/build/*</exclude-pattern>
        <exclude-pattern>/bin/*</exclude-pattern>
+       <!-- Local env configs (wp-env / DDEV) — not part of plugin source. -->
+       <exclude-pattern>/.wp-env/*</exclude-pattern>
+       <exclude-pattern>/.ddev/*</exclude-pattern>
 
        <arg value="sp"/>
        <arg name="basepath" value="."/>
