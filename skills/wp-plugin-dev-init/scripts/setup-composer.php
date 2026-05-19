@@ -41,14 +41,20 @@ if ( isset( $composer['autoload']['psr-4'][ $psr4Key ] ) && $composer['autoload'
     $composer['autoload']['psr-4'][ $psr4Key ] = $autoloadDir . '/';
 }
 
-// Add require-dev — array_merge keeps later values, safe to add/update package versions.
-$composer['require-dev'] = array_merge(
-    $composer['require-dev'] ?? [],
-    [
-        'wp-phpunit/wp-phpunit' => '^6.3',
-        'yoast/phpunit-polyfills' => '^1.0'
-    ]
-);
+// Add require-dev — only add if not already present. Existing user constraints win.
+// Versions kept in sync with init-plugin.md Step 5.2.
+$desiredRequireDev = [
+    'wp-phpunit/wp-phpunit' => '^6.9',
+    'yoast/phpunit-polyfills' => '^2.0',
+];
+$composer['require-dev'] = $composer['require-dev'] ?? [];
+foreach ( $desiredRequireDev as $package => $version ) {
+    if ( ! isset( $composer['require-dev'][ $package ] ) ) {
+        $composer['require-dev'][ $package ] = $version;
+    } elseif ( $composer['require-dev'][ $package ] !== $version ) {
+        fwrite( STDERR, "ℹ️  composer.json require-dev['$package'] 已存在 ({$composer['require-dev'][$package]}); 保留原值，未改為 $version。\n" );
+    }
+}
 
 // Add scripts — conflict-aware merge: existing keys with different values trigger a warning
 // and are left untouched. Caller can re-run with the old composer.json modified by hand.
