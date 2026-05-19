@@ -98,6 +98,11 @@ jobs:
             --exclude='.playwright-mcp' \
             --exclude='scripts' \
             --exclude='.agent' \
+            --exclude='.wp-env.json' \
+            --exclude='.wp-env.override.json' \
+            --exclude='.wp-env' \
+            --exclude='.ddev' \
+            --exclude='local-config.php' \
             . build/{{PLUGIN_NAME}}/
 
       - name: Create ZIP file

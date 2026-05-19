@@ -150,16 +150,34 @@ fi
 grep -qxF '/vendor/' .gitignore || echo '/vendor/' >> .gitignore
 grep -qxF '/build/' .gitignore || echo '/build/' >> .gitignore
 grep -qxF 'phpunit.xml' .gitignore || echo 'phpunit.xml' >> .gitignore
+# 本機環境的個人覆寫檔 / 暫存設定 — 不入版控
+grep -qxF '.wp-env.override.json' .gitignore || echo '.wp-env.override.json' >> .gitignore
+grep -qxF 'local-config.php' .gitignore || echo 'local-config.php' >> .gitignore
 
-# 14. 安裝測試環境
-echo -e "${BLUE}🧪 安裝測試環境...${NC}"
-composer test:install
+# 14. 偵測本機環境 (wp-env / DDEV) — 若使用容器化環境，跳過 host 端的 test:install
+USE_CONTAINER_ENV=false
+if [ -f ".wp-env.json" ] || [ -f ".ddev/config.yaml" ]; then
+    USE_CONTAINER_ENV=true
+fi
 
-# 15. 執行測試
-echo -e "${BLUE}✅ 執行測試...${NC}"
-composer test
+if [ "$USE_CONTAINER_ENV" = true ]; then
+    echo ""
+    echo -e "${YELLOW}⚠️  偵測到 wp-env 或 DDEV 設定檔${NC}"
+    echo -e "${YELLOW}    跳過 host 端的 test:install / test (會連到錯誤的 MySQL)${NC}"
+    echo -e "${YELLOW}    請在 container 內執行：${NC}"
+    echo -e "${YELLOW}      wp-env run cli composer test:install && wp-env run cli composer test${NC}"
+    echo -e "${YELLOW}      ddev exec composer test:install && ddev exec composer test${NC}"
+else
+    # 15. 安裝測試環境
+    echo -e "${BLUE}🧪 安裝測試環境...${NC}"
+    composer test:install
 
-# 16. 執行建置
+    # 16. 執行測試
+    echo -e "${BLUE}✅ 執行測試...${NC}"
+    composer test
+fi
+
+# 17. 執行建置 (composer build 不依賴 MySQL，任何環境都可以跑)
 echo -e "${BLUE}📦 執行建置測試...${NC}"
 composer build
 
