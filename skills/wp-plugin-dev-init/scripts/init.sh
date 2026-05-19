@@ -12,6 +12,37 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# 詢問檔案/目錄已存在時要如何處理
+# 用法: prompt_overwrite <path> <description>
+# 回傳: 0 = overwrite, 1 = skip, 2 = backup-and-replace
+prompt_overwrite() {
+    local target="$1"
+    local desc="$2"
+
+    if [ ! -e "$target" ]; then
+        return 0  # 不存在，直接寫
+    fi
+
+    echo ""
+    echo -e "${YELLOW}⚠️  $desc 已存在: $target${NC}"
+    echo "    (o) overwrite — 直接覆蓋"
+    echo "    (s) skip      — 保留現有，跳過 (預設)"
+    echo "    (b) backup    — 備份為 .bak.<timestamp> 再覆蓋"
+    read -p "    請選擇 [o/s/b] (預設 s): " -n 1 -r CHOICE
+    echo
+
+    case "$CHOICE" in
+        o|O) return 0 ;;
+        b|B)
+            local backup="${target}.bak.$(date +%s)"
+            cp -r "$target" "$backup"
+            echo -e "${GREEN}    ✓ 已備份至: $backup${NC}"
+            return 0
+            ;;
+        *) return 1 ;;
+    esac
+}
+
 # 取得腳本所在目錄
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
@@ -100,9 +131,21 @@ if ! command -v composer &> /dev/null; then
     exit 1
 fi
 
-# 6. 執行 WP-CLI scaffold
+# 6. 執行 WP-CLI scaffold（既有 tests/ 先詢問）
 echo -e "${BLUE}📝 執行 WP-CLI scaffold...${NC}"
-wp scaffold plugin-tests "$PLUGIN_SLUG" --ci=github --force
+SCAFFOLD_FORCE=""
+if [ -d "tests" ] || [ -f "phpunit.xml.dist" ] || [ -f "bin/install-wp-tests.sh" ]; then
+    if prompt_overwrite "tests/" "測試目錄/scaffold 檔案"; then
+        SCAFFOLD_FORCE="--force"
+    else
+        echo -e "${YELLOW}    跳過 wp scaffold plugin-tests${NC}"
+        SCAFFOLD_FORCE="__SKIP__"
+    fi
+fi
+
+if [ "$SCAFFOLD_FORCE" != "__SKIP__" ]; then
+    wp scaffold plugin-tests "$PLUGIN_SLUG" --ci=github $SCAFFOLD_FORCE
+fi
 
 # 7. 設定 Composer
 echo -e "${BLUE}📦 設定 Composer...${NC}"
@@ -119,26 +162,46 @@ php "$SCRIPT_DIR/setup-composer.php" \
 echo -e "${BLUE}📥 安裝 Composer 依賴...${NC}"
 composer install
 
-# 9. 調整 bootstrap.php
+# 9. 調整 bootstrap.php（冪等：已含 polyfills 載入就跳過；插入時不重複 <?php 標籤）
 echo -e "${BLUE}🔧 調整測試啟動檔案...${NC}"
 if [ -f "tests/bootstrap.php" ]; then
-    # 在檔案開頭加入 Polyfills 載入
-    cat "$TEMPLATES_DIR/bootstrap-addon.php" | cat - tests/bootstrap.php > temp && mv temp tests/bootstrap.php
+    if grep -q "WP_TESTS_PHPUNIT_POLYFILLS_PATH" tests/bootstrap.php; then
+        echo -e "${GREEN}    ✓ bootstrap.php 已包含 Polyfills 載入，跳過${NC}"
+    else
+        # 把 addon 內容（去掉開頭的 <?php）插入到 bootstrap.php 第一個 <?php 之後
+        ADDON_BODY=$(sed '1{/^<?php/d;}' "$TEMPLATES_DIR/bootstrap-addon.php")
+        # 用 awk 在第一個 <?php 之後插入，避免雙標籤
+        awk -v body="$ADDON_BODY" '
+            !inserted && /^<\?php/ { print; print body; inserted=1; next }
+            { print }
+        ' tests/bootstrap.php > tests/bootstrap.php.tmp && mv tests/bootstrap.php.tmp tests/bootstrap.php
+        echo -e "${GREEN}    ✓ Polyfills 載入已插入${NC}"
+    fi
 fi
 
-# 10. 建立打包腳本
+# 10. 建立打包腳本（既有則詢問）
 echo -e "${BLUE}📦 建立打包腳本...${NC}"
 mkdir -p scripts
-sed -e "s/{{PLUGIN_SLUG}}/$PLUGIN_SLUG/g" \
-    -e "s/{{PLUGIN_NAME}}/$PLUGIN_NAME/g" \
-    "$TEMPLATES_DIR/build.php.template" > scripts/build.php
+if prompt_overwrite "scripts/build.php" "打包腳本"; then
+    sed -e "s/{{PLUGIN_SLUG}}/$PLUGIN_SLUG/g" \
+        -e "s/{{PLUGIN_NAME}}/$PLUGIN_NAME/g" \
+        "$TEMPLATES_DIR/build.php.template" > scripts/build.php
+    echo -e "${GREEN}    ✓ scripts/build.php 已建立${NC}"
+else
+    echo -e "${YELLOW}    跳過 scripts/build.php${NC}"
+fi
 
-# 11. 建立 GitHub Actions workflow
+# 11. 建立 GitHub Actions workflow（既有則詢問）
 echo -e "${BLUE}⚙️  建立 GitHub Actions workflow...${NC}"
 mkdir -p .github/workflows
-sed -e "s/{{PLUGIN_SLUG}}/$PLUGIN_SLUG/g" \
-    -e "s/{{PLUGIN_NAME}}/$PLUGIN_NAME/g" \
-    "$TEMPLATES_DIR/release-workflow.yml.template" > .github/workflows/release.yml
+if prompt_overwrite ".github/workflows/release.yml" "GitHub Actions release workflow"; then
+    sed -e "s/{{PLUGIN_SLUG}}/$PLUGIN_SLUG/g" \
+        -e "s/{{PLUGIN_NAME}}/$PLUGIN_NAME/g" \
+        "$TEMPLATES_DIR/release-workflow.yml.template" > .github/workflows/release.yml
+    echo -e "${GREEN}    ✓ .github/workflows/release.yml 已建立${NC}"
+else
+    echo -e "${YELLOW}    跳過 .github/workflows/release.yml${NC}"
+fi
 
 # 12. 更新 .gitignore
 echo -e "${BLUE}📝 更新 .gitignore...${NC}"
