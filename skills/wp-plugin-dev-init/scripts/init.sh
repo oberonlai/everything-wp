@@ -171,19 +171,39 @@ if ! command -v composer &> /dev/null; then
     exit 1
 fi
 
-# 6. 執行 WP-CLI scaffold（既有 tests/ 先詢問）
-echo -e "${BLUE}📝 執行 WP-CLI scaffold...${NC}"
+# 6. 執行 WP-CLI scaffold
+# init.sh 只在 Augment mode 跑（前段已 enforce），故 scaffold 一律先告知並詢問。
+# wp scaffold plugin-tests 會新增：tests/、bin/install-wp-tests.sh、phpunit.xml.dist、
+# .travis.yml、.circleci/、tests/test-sample.php、tests/bootstrap.php。
+echo -e "${BLUE}📝 執行 WP-CLI scaffold（將新增測試骨架）...${NC}"
+echo -e "${YELLOW}    將會新增/可能覆寫：${NC}"
+echo "      - tests/ (bootstrap.php, test-sample.php)"
+echo "      - bin/install-wp-tests.sh"
+echo "      - phpunit.xml.dist"
+echo "      - .travis.yml, .circleci/ (Augment mode 後續不刪)"
 SCAFFOLD_FORCE=""
+EXISTING_SCAFFOLD=false
 if [ -d "tests" ] || [ -f "phpunit.xml.dist" ] || [ -f "bin/install-wp-tests.sh" ]; then
+    EXISTING_SCAFFOLD=true
+fi
+
+if [ "$EXISTING_SCAFFOLD" = true ]; then
     if prompt_overwrite "tests/" "測試目錄/scaffold 檔案"; then
         SCAFFOLD_FORCE="--force"
     else
-        echo -e "${YELLOW}    跳過 wp scaffold plugin-tests${NC}"
+        SCAFFOLD_FORCE="__SKIP__"
+    fi
+else
+    read -p "    繼續執行 wp scaffold？ [Y/n] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
         SCAFFOLD_FORCE="__SKIP__"
     fi
 fi
 
-if [ "$SCAFFOLD_FORCE" != "__SKIP__" ]; then
+if [ "$SCAFFOLD_FORCE" = "__SKIP__" ]; then
+    echo -e "${YELLOW}    跳過 wp scaffold plugin-tests${NC}"
+else
     wp scaffold plugin-tests "$PLUGIN_SLUG" --ci=github $SCAFFOLD_FORCE
 fi
 
@@ -276,18 +296,41 @@ if [ "$USE_CONTAINER_ENV" = true ]; then
     echo -e "${YELLOW}      wp-env run cli composer test:install && wp-env run cli composer test${NC}"
     echo -e "${YELLOW}      ddev exec composer test:install && ddev exec composer test${NC}"
 else
-    # 15. 安裝測試環境
-    echo -e "${BLUE}🧪 安裝測試環境...${NC}"
-    composer test:install
+    # 15. 安裝測試環境（會 drop/recreate test DB，必須先問）
+    echo ""
+    echo -e "${YELLOW}🧪 composer test:install 將會 drop 並重建測試資料庫 ($DB_NAME)${NC}"
+    echo -e "${YELLOW}    若該資料庫中有真實資料會全部消失。${NC}"
+    read -p "    繼續？ [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}🧪 安裝測試環境...${NC}"
+        composer test:install
 
-    # 16. 執行測試
-    echo -e "${BLUE}✅ 執行測試...${NC}"
-    composer test
+        echo -e "${BLUE}✅ 執行測試...${NC}"
+        composer test
+    else
+        echo -e "${YELLOW}    跳過 composer test:install / test${NC}"
+        echo -e "${YELLOW}    請手動執行：composer test:install && composer test${NC}"
+    fi
 fi
 
-# 17. 執行建置 (composer build 不依賴 MySQL，任何環境都可以跑)
-echo -e "${BLUE}📦 執行建置測試...${NC}"
-composer build
+# 17. 執行建置（可能產出 build/ 目錄；既有 build/ 會詢問）
+echo ""
+read -p "📦 是否立即執行 composer build 驗證打包流程？ [y/N] " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if [ -d "build" ]; then
+        if ! prompt_overwrite "build" "build/ 目錄"; then
+            echo -e "${YELLOW}    跳過 composer build${NC}"
+        else
+            composer build
+        fi
+    else
+        composer build
+    fi
+else
+    echo -e "${YELLOW}    跳過 composer build；可在準備好時手動執行${NC}"
+fi
 
 # 完成
 echo ""
