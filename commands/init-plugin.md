@@ -35,13 +35,32 @@ Use `/init-plugin` when:
 1. Glob `*.php` in the project root.
 2. For each file, check if it contains `Plugin Name:` header.
 3. If found → Augment mode (existing plugin).
-   If not    → Greenfield mode (new plugin).
+   If not    → Greenfield mode candidate — but verify directory is safe first (see below).
 ```
 
 You may also use the helper script (does the same detection and outputs JSON):
 ```bash
 php @everything-wp/skills/wp-plugin-dev-init/scripts/detect-plugin.php .
 ```
+
+If `detect-plugin.php` finds **multiple** PHP files with `Plugin Name:` header, **stop and ask the user** which one is the main file. Do not auto-pick — picking the wrong one would auto-fill the wrong name/version/slug into the scaffold.
+
+#### Greenfield safety check — do not scaffold in the wrong directory
+
+Before proceeding with Greenfield mode, verify the current directory looks like a fresh plugin folder. Misfires (e.g. running in `wp-content/plugins/` root) would scatter scaffold files across the wrong place.
+
+Refuse to proceed and ask the user to confirm if any of these are true:
+- Directory contains **5 or more files/folders** that aren't `.git`, `.github`, `.claude`, `README.md`, or `LICENSE`
+- Directory contains other plugin folders (sibling dirs each containing a `*.php` with `Plugin Name:`) — strong signal we're in `wp-content/plugins/`
+- Directory basename is `plugins`, `wp-content`, or matches `wordpress*`
+
+If any check fails, print:
+```
+⚠️  This directory does not look like a fresh plugin folder.
+    Greenfield mode would scaffold files here, possibly damaging existing content.
+    Are you sure you want to continue? (y/N)
+```
+Default No.
 
 #### Mode comparison
 
@@ -518,6 +537,10 @@ After generating files:
    composer require --dev phpunit/phpunit:^9.6 wp-phpunit/wp-phpunit:^6.9 yoast/phpunit-polyfills:^2.0
    ```
 
+   > **Version note**: PHPUnit 9.6 is required because the WordPress test suite is not compatible with PHPUnit 10/11. If the user's existing `composer.json` already pins a different PHPUnit version (e.g. ^11), this command will either fail or downgrade — **stop and confirm with the user before continuing**. The version constraints here must stay in sync with `setup-composer.php`'s `$desiredRequireDev`.
+
+   > **Augment mode**: `composer install` (run after dependency changes) will regenerate `composer.lock` if it exists. Warn the user that they may see a lockfile diff after the run.
+
    If PHPStan selected:
    ```bash
    composer require --dev phpstan/phpstan szepeviktor/phpstan-wordpress
@@ -665,6 +688,11 @@ After generating files:
    composer test:install
    composer test
    ```
+
+   > **⚠️  Data loss warning**: `bin/install-wp-tests.sh` **drops and recreates the configured test database** (`wordpress_test` by default). If the user has real data in a database with that name, it will be lost. Before running `composer test:install`:
+   > - Confirm the test DB name does not collide with any real DB (use a different name like `wordpress_test_<plugin-slug>` if in doubt)
+   > - In Augment mode, **ask the user explicitly** before running this command for the first time
+   > - In wp-env / DDEV environments, this command is gated by `init.sh` (auto-skipped) — only host-mode native MySQL is at risk
 
 8. **Build to verify** (if local build script selected):
    ```bash

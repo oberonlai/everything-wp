@@ -12,14 +12,25 @@ if ($argc < 2) {
 
 $pluginDir = $argc > 1 ? $argv[1] : getcwd();
 
-// Find the main plugin file
-$pluginFile = findPluginFile($pluginDir);
+// Find all main plugin files (files with `Plugin Name:` header).
+$pluginFiles = findPluginFiles($pluginDir);
 
-if (!$pluginFile) {
+if (count($pluginFiles) === 0) {
     fwrite(STDERR, "Error: Could not find main plugin file\n");
     fwrite(STDERR, "Looking for PHP file with 'Plugin Name:' header in: $pluginDir\n");
     exit(1);
 }
+
+if (count($pluginFiles) > 1) {
+    fwrite(STDERR, "Error: Found multiple PHP files with 'Plugin Name:' header. Please specify which is the main file:\n");
+    foreach ($pluginFiles as $f) {
+        fwrite(STDERR, "  - " . basename($f) . "\n");
+    }
+    fwrite(STDERR, "Re-run with the main file path as a second argument, or rename/remove the duplicates.\n");
+    exit(2);
+}
+
+$pluginFile = $pluginFiles[0];
 
 // Extract plugin information
 $pluginInfo = extractPluginInfo($pluginFile);
@@ -34,19 +45,22 @@ echo json_encode($pluginInfo, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 exit(0);
 
 /**
- * Find the main plugin file
+ * Find all PHP files with `Plugin Name:` header (only the directory root, not recursive).
+ *
+ * Returns an array of absolute file paths (possibly empty).
  */
-function findPluginFile($dir) {
+function findPluginFiles($dir) {
     $files = glob($dir . '/*.php');
-    
+    $matches = [];
+
     foreach ($files as $file) {
         $content = file_get_contents($file);
         if (preg_match('/Plugin Name:/i', $content)) {
-            return $file;
+            $matches[] = $file;
         }
     }
-    
-    return null;
+
+    return $matches;
 }
 
 /**

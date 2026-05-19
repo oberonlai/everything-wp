@@ -58,11 +58,51 @@ echo ""
 
 # 1. 偵測外掛資訊
 echo -e "${BLUE}🔍 偵測外掛資訊...${NC}"
-PLUGIN_INFO=$(php "$SCRIPT_DIR/detect-plugin.php" "$PROJECT_DIR")
+set +e  # 暫時允許失敗以讀 exit code
+PLUGIN_INFO=$(php "$SCRIPT_DIR/detect-plugin.php" "$PROJECT_DIR" 2>&1)
+DETECT_EXIT=$?
+set -e
 
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ 無法偵測外掛資訊${NC}"
+if [ $DETECT_EXIT -eq 2 ]; then
+    # 多個含 Plugin Name: header 的檔案 — 不能自動繼續
+    echo -e "${RED}❌ 偵測到多個外掛主檔，請先處理：${NC}"
     echo "$PLUGIN_INFO"
+    exit 1
+fi
+
+if [ $DETECT_EXIT -ne 0 ]; then
+    # 找不到既有外掛 — 進入 Greenfield 防呆檢查
+    echo -e "${YELLOW}ℹ️  未偵測到既有外掛（無 Plugin Name: header）${NC}"
+
+    # 簡易啟發式：目錄基底名疑似 wp-content/plugins/ 或包含多個外掛子目錄就警告
+    BASENAME=$(basename "$PROJECT_DIR")
+    if [[ "$BASENAME" == "plugins" || "$BASENAME" == "wp-content" || "$BASENAME" == wordpress* ]]; then
+        echo -e "${RED}⚠️  當前目錄名稱 ($BASENAME) 看起來像 WordPress 根/外掛根。${NC}"
+        echo -e "${RED}    在這裡跑 Greenfield 流程會把 scaffold 檔散落各處。${NC}"
+        read -p "    確定要繼續嗎？ [y/N] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${RED}已取消${NC}"
+            exit 1
+        fi
+    fi
+
+    # 偵測同層是否有其他「含 Plugin Name: 的子目錄」(代表這裡像 plugins 根)
+    OTHER_PLUGINS=$(find "$PROJECT_DIR" -mindepth 2 -maxdepth 2 -name "*.php" -exec grep -l "Plugin Name:" {} \; 2>/dev/null | head -3)
+    if [ -n "$OTHER_PLUGINS" ]; then
+        echo -e "${RED}⚠️  同層子目錄含其他外掛主檔，當前目錄很可能是 wp-content/plugins/。${NC}"
+        echo "$OTHER_PLUGINS"
+        read -p "    確定要繼續嗎？ [y/N] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${RED}已取消${NC}"
+            exit 1
+        fi
+    fi
+
+    # 既然 init.sh 原本只設計給既有外掛，這裡仍維持「沒外掛主檔就停」的行為
+    # （Greenfield 流程目前由 init-plugin.md 描述、agent 自行執行 template 步驟）
+    echo -e "${RED}❌ init.sh 只支援既有外掛偵測。Greenfield 流程請由 agent 依 init-plugin.md 執行。${NC}"
     exit 1
 fi
 
