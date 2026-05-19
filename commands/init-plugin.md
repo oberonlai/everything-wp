@@ -25,6 +25,47 @@ Use `/init-plugin` when:
 
 ## How It Works
 
+### Step 0: Detect Mode — Greenfield vs Augment
+
+**CRITICAL**: Before any file generation, determine which mode you are in. The two modes have very different safety profiles.
+
+#### Detection logic
+
+```
+1. Glob `*.php` in the project root.
+2. For each file, check if it contains `Plugin Name:` header.
+3. If found → Augment mode (existing plugin).
+   If not    → Greenfield mode (new plugin).
+```
+
+You may also use the helper script (does the same detection and outputs JSON):
+```bash
+php @everything-wp/skills/wp-plugin-dev-init/scripts/detect-plugin.php .
+```
+
+#### Mode comparison
+
+| Concern                       | Greenfield                              | Augment                                                          |
+|-------------------------------|-----------------------------------------|------------------------------------------------------------------|
+| Main plugin file              | Generate from `plugin-main.php.template` | **Do not touch.** Parse it to auto-fill name / slug / version / text domain. |
+| OOP structure (`src/Bootstrap.php` etc.) | Ask user; generate if selected   | **Skip by default.** Only generate if user explicitly opts in AND `src/Bootstrap.php` doesn't exist. |
+| `composer.json`               | `composer init`                         | Read existing → merge new keys via `setup-composer.php` (already does this). |
+| `composer.json` `scripts`     | Set fresh                               | Merge — never overwrite existing `test`, `build`, etc. without asking. |
+| `tests/`                      | `wp scaffold plugin-tests`              | If `tests/` exists, **ask first**: overwrite / skip / back up. If skipping, still ensure `bootstrap.php` has the polyfills loader (append `bootstrap-addon.php` if missing). |
+| `.github/workflows/release.yml` | Generate from template                | If exists, **ask first**: overwrite / skip / merge by hand.      |
+| `scripts/build.php`           | Generate from template                  | If exists, **ask first**: overwrite / skip.                      |
+| `phpstan.neon`                | Generate                                | Skip if exists; never overwrite.                                 |
+| `.phpcs.xml.dist`             | Generate                                | Skip if exists; never overwrite.                                 |
+| `.gitignore`                  | Append entries (idempotent)             | Same — append only missing lines.                                |
+| Dev tool install (`composer require --dev`) | Run                       | Run — additive, safe.                                            |
+
+#### Augment mode interaction rules
+
+- **Announce the mode** to the user at the start: `Detected existing plugin: <name> v<version>. Running in AUGMENT mode — will not touch your main plugin file or existing src/.`
+- **Auto-fill what you can** from the existing main file (name, slug, version, text domain) — do not re-ask questions you already know the answer to.
+- **For every potentially destructive write**, ask: `<file> already exists. (o)verwrite / (s)kip / (b)ack up and replace?`
+- **Default to skip** for overwrites; the user can always re-run with explicit intent.
+
 ### Step 1: Collect Plugin Information
 
 Use the AskUserQuestion tool to gather the following information:
@@ -407,12 +448,15 @@ If "Yes" selected for OOP structure:
 
 **Execution Flow:**
 
-1. Call AskUserQuestion with first question set (Plugin Identity)
-2. Call AskUserQuestion with second question set (Configuration)
-3. If "Enter custom credentials" selected, ask follow-up database questions
-4. Call AskUserQuestion with third question set (Development Tools)
-5. Collect all information and proceed with template processing
-6. Install selected development tools and create corresponding configuration files
+1. **Run Step 0 mode detection first.** Announce the mode to the user.
+2. **Auto-fill from existing main file (Augment mode only)**: parse `Plugin Name:`, `Version:`, `Text Domain:` from the existing main file via `detect-plugin.php` — do not ask questions you already know the answer to.
+3. Call AskUserQuestion with first question set (Plugin Identity) — **skip in Augment mode** (already auto-filled).
+4. Call AskUserQuestion with second question set (Configuration).
+5. If "Enter custom credentials" selected, ask follow-up database questions.
+6. Call AskUserQuestion with third question set (Development Tools).
+7. **In Augment mode, additionally ask**: "OOP structure already not present — generate `src/Bootstrap.php` + `Activator/Deactivator`?" (default No, only offered if `src/Bootstrap.php` does not exist).
+8. Collect all information and proceed with template processing, **applying the per-file mode rules from Step 4's matrix** (skip / ask / generate).
+9. Install selected development tools and create corresponding configuration files.
 
 ### Step 3: Process Templates
 
@@ -443,15 +487,17 @@ After collecting information, replace placeholders in templates:
 
 ### Step 4: Files to Generate
 
-Using templates from `@everything-wp/skills/wp-plugin-dev-init/templates/`:
+Using templates from `@everything-wp/skills/wp-plugin-dev-init/templates/`. **Apply the mode rules from Step 0** — items marked 🔴 skip entirely in Augment mode; items marked 🟡 ask before overwriting; items marked 🟢 are safe in both modes.
 
-1. **{{PLUGIN_SLUG}}.php** - From `plugin-main.php.template` (main plugin file with complete header)
-2. **scripts/build.php** - From `build.php.template` (if local build script selected)
-3. **.github/workflows/release.yml** - From `release-workflow.yml.template`
-4. **tests/bootstrap.php** - Append content from `bootstrap-addon.php` (if PHPUnit selected)
-5. **src/Bootstrap.php** - From `Bootstrap.php.template` (if OOP structure selected)
-6. **src/Activator.php** - From `Activator.php.template` (if OOP structure selected)
-7. **src/Deactivator.php** - From `Deactivator.php.template` (if OOP structure selected)
+| # | File | Template | Greenfield | Augment |
+|---|------|----------|-----------|---------|
+| 1 | `{{PLUGIN_SLUG}}.php` | `plugin-main.php.template` | ✅ Generate | 🔴 **Skip — never touch existing main file** |
+| 2 | `scripts/build.php` | `build.php.template` (if build script selected) | ✅ Generate | 🟡 Ask if exists |
+| 3 | `.github/workflows/release.yml` | `release-workflow.yml.template` | ✅ Generate | 🟡 Ask if exists |
+| 4 | `tests/bootstrap.php` | append `bootstrap-addon.php` (if PHPUnit selected) | ✅ Append | 🟢 Append only if polyfills loader missing (idempotent) |
+| 5 | `src/Bootstrap.php` | `Bootstrap.php.template` (if OOP selected) | ✅ Generate | 🔴 Skip if `src/` exists; only generate when user explicitly opts in for empty `src/` |
+| 6 | `src/Activator.php` | `Activator.php.template` (if OOP selected) | ✅ Generate | 🔴 Same as above |
+| 7 | `src/Deactivator.php` | `Deactivator.php.template` (if OOP selected) | ✅ Generate | 🔴 Same as above |
 
 ### Step 5: Additional Setup
 
