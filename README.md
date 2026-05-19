@@ -8,9 +8,10 @@ Everything WP is designed to work with AI coding assistants (like Claude, Cursor
 
 ### Key Features
 
-- **16 Commands** - Interactive workflows for common plugin development tasks
+- **15 Commands** - Interactive workflows for common plugin development tasks
 - **3 Skill Areas** - Deep knowledge bases for backend, frontend, and plugin initialization
-- **1 Agent** - Unified code quality agent for testing and analysis
+- **4 Agents** - Planner, task executor (TDD-aware), code reviewer, and code quality
+- **End-to-End Workflow** - From planning to release, with diff-scoped reviews and quality gates
 - **WordPress.org Ready** - Built-in submission review and compliance checks
 
 ## 📦 Installation
@@ -51,17 +52,18 @@ Add the skills path to your configuration.
 | Command | Description |
 |---------|-------------|
 | `/verify` | Run all code quality checks (PHPStan + PHPUnit + PHPCS) |
-| `/test` | Execute PHPUnit tests and analyze failures |
-| `/test-generate` | Generate PHPUnit tests for existing code |
-| `/analyse` | Run PHPStan static analysis |
-| `/lint` | Run PHPCS code style check with auto-fix |
+| `/test` | Execute PHPUnit tests and analyze failures (fast iteration during dev) |
+| `/test-generate` | Generate PHPUnit tests for existing code (legacy retrofit only — not needed in TDD flow) |
+
+> For one-off PHPStan or PHPCS runs, use `composer phpstan` / `composer phpcs` directly. Dedicated `/analyse` and `/lint` commands were removed since task-executor handles them scoped, and `/verify` handles them full.
 
 ### Planning & Review Commands
 
 | Command | Description |
 |---------|-------------|
-| `/plan` | Create implementation plan before coding |
-| `/todo` | Execute development tasks from spec file with progress tracking |
+| `/plan` | Create implementation plan, saved as spec files under `spec/<feature-name>/` |
+| `/todo` | Execute development tasks from a spec file. Supports `--tdd`, `--tdd=unit`, `--tdd=int` for Red-Green-Refactor workflow |
+| `/review` | Senior-engineer code review on the current diff (Security, Performance, Simplification, Test gap, i18n) |
 | `/submit-review` | Review plugin for WordPress.org submission compliance |
 
 ## 📚 Skills
@@ -91,13 +93,51 @@ Plugin initialization resources:
 
 ## 🤖 Agents
 
+### planner
+3-layer task breakdown (Operation Flow → User Stories → Development Tasks). Reads the codebase, optionally fetches user-provided URLs or `@skill-name` references, and saves a structured spec under `spec/<feature-name>/`. Recommends `--tdd` mode based on the feature type.
+
+### task-executor
+Implements tasks from a spec file. Updates checkboxes per task as they complete. Supports:
+- **Standard mode**: direct implementation following codebase conventions
+- **TDD mode** (`--tdd`, `--tdd=unit`, `--tdd=int`): mandatory Red-Green-Refactor per behavior
+- **Scoped quality check**: PHPCS / PHPStan on changed files + full PHPUnit, with pre-existing failure detection
+
+### code-reviewer
+Diff-scoped, read-only senior code review. Reports findings in five areas — Security, Performance, Simplification, Test coverage gap, and i18n — with severity (🔴 Must / 🟡 Should / 🔵 Nice) and concrete fix suggestions. Does not modify code.
+
 ### code-quality
-Unified agent for all quality checks:
-- **generate** mode: Generate tests for existing code
-- **test** mode: Execute and analyze PHPUnit tests
-- **analyse** mode: Run PHPStan static analysis
-- **lint** mode: Run PHPCS code style check
-- **verify** mode: Execute all checks in sequence
+Unified agent invoked by quality commands:
+- **generate** mode: Generate tests for existing code (`/test-generate`)
+- **test** mode: Execute and analyze PHPUnit tests (`/test`)
+- **verify** mode: Execute all checks in sequence (`/verify`)
+
+### submission-reviewer
+Reviews the whole plugin for WordPress.org submission compliance (license, readme.txt, forbidden files, third-party docs, privacy, dismissible notices). Invoked by `/submit-review`.
+
+## 🔄 Recommended Workflow
+
+```
+/plan <feature description>                # → spec/<feature-name>/overview.md + area files
+       ↓
+/todo spec/<feature-name>/<area>.md --tdd  # → implement with Red-Green-Refactor
+       ↓
+/review                                    # → diff-scoped 5-area review
+       ↓ fix 🔴 / 🟡 findings
+/verify                                    # → full-project quality gate
+       ↓
+human commit + PR
+       ↓ (when ready to publish)
+/submit-review                             # → WordPress.org compliance check
+```
+
+Each command has a distinct scope:
+
+| Command | Scope | Purpose |
+|---------|-------|---------|
+| `/todo` Step 5 | Changed files (PHPCS/PHPStan) + full suite (PHPUnit) | Confirm new code is clean and didn't break anything |
+| `/review` | Changed files (diff) | Catch issues automated tools miss (security, perf, i18n, etc.) |
+| `/verify` | Whole project | Release gate — full PHPStan / PHPUnit / PHPCS |
+| `/submit-review` | Whole plugin | wp.org submission compliance |
 
 ## 📋 Example Usage
 
@@ -160,34 +200,80 @@ AI: Running WordPress.org submission review...
     Action required: Remove .DS_Store before submission
 ```
 
-### Executing Tasks from Spec
+### Planning a Feature
 
 ```
-User: /todo spec/booking-system/user-registration.md
+User: /plan Build a booking system with time slot selection and email confirmation
 
-AI: Reading spec file...
+AI: [Step 1] Scanning src/ ...
+    ## Codebase Analysis
+    - Namespace: MyPlugin\ | Layers: Repository/Service/Admin/REST
+    - Convention: Snake_Case class, constructor DI via Container
+    - Reusable: Mailer service, Repository base
+    - Conflicts: none
 
-    📋 Found 4 tasks in user-registration.md
+    [Step 3] Operation Flow:
+    - Customer browses available time slots
+    - Customer submits booking with contact info
+    - Admin reviews and confirms booking
+    - Email confirmation sent
 
-    Scanning src/ folder for current architecture...
-    ✅ Found existing patterns: Repository, Service, Controller
+    [Step 5] Saved plan to spec/booking-system/
+    - overview.md
+    - customer-flow.md
+    - admin-flow.md
 
-    Task 1/4: Create User entity class
-    [Implements src/Entity/User.php]
-    ✅ Task 1 completed - Updated spec checkbox
+    Next step: /todo spec/booking-system/customer-flow.md --tdd=int
+    Reason: REST endpoints + DB writes → integration tests
+```
 
-    Task 2/4: Create UserRepository class
-    [Implements src/Repository/UserRepository.php]
-    ✅ Task 2 completed - Updated spec checkbox
+### Executing Tasks with TDD
 
-    ...
+```
+User: /todo spec/booking-system/customer-flow.md --tdd=int
 
-    ╔═══════════════════════════════════════╗
-    ║      Task Execution Complete          ║
-    ╠═══════════════════════════════════════╣
-    ║ Completed │ 4/4 tasks                 ║
-    ║ Spec File │ Updated with progress     ║
-    ╚═══════════════════════════════════════╝
+AI: TDD mode: int
+
+    Task 1/4: Create Booking entity
+
+    🔴 Red: test_booking_can_be_created — FAILED ✓
+    🟢 Green: PASSED ✓
+    🔵 Refactor: Extracted validation — PASSED ✓
+
+    ✓ Updated spec checkbox
+
+    [... more tasks ...]
+
+    Step 5 — Scoped Quality Check
+    PHPCS (changed files): ✅ clean
+    PHPStan (changed files): ✅ clean
+    PHPUnit (full suite): ✅ 47 passed, 0 failed
+```
+
+### Reviewing the Diff
+
+```
+User: /review
+
+AI: 📂 Files reviewed: 3 files
+    📊 Findings: 🔴 1 Must · 🟡 2 Should · 🔵 1 Nice
+
+    Security
+    🔴 src/REST/Booking_Controller.php:58 — Capability check missing
+       Code: register_rest_route( ..., 'methods' => 'POST', 'callback' => ... )
+       Issue: POST endpoint accepts any authenticated user; no permission_callback.
+       Suggested fix: Add 'permission_callback' => fn() => current_user_can( 'edit_posts' )
+
+    Performance
+    No issues found in this area.
+
+    i18n
+    🟡 src/Admin/Booking_Page.php:34 — Hardcoded string without __()
+       Code: echo '<h2>Booking Management</h2>';
+       Suggested fix: echo esc_html__( 'Booking Management', 'myplugin' );
+
+    Recommendation:
+    - Fix the 🔴 capability issue before /verify or PR
 ```
 
 ## 📁 Directory Structure
@@ -206,10 +292,9 @@ everything-wp/
 │   ├── verify.md
 │   ├── test.md
 │   ├── test-generate.md
-│   ├── analyse.md
-│   ├── lint.md
 │   ├── plan.md
 │   ├── todo.md
+│   ├── review.md
 │   └── submit-review.md
 │
 ├── skills/             # Knowledge bases
@@ -231,7 +316,11 @@ everything-wp/
 │       └── scripts/
 │
 ├── agents/             # AI agents
-│   └── code-quality.md
+│   ├── planner.md
+│   ├── task-executor.md
+│   ├── code-reviewer.md
+│   ├── code-quality.md
+│   └── submission-reviewer.md
 │
 └── rules/              # Global rules
     └── wp-essentials.md

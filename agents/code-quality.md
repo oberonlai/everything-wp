@@ -1,5 +1,5 @@
 ---
-description: Unified agent for code quality checks including test generation, PHPUnit execution, PHPStan analysis, and PHPCS linting
+description: Unified agent for code quality checks including test generation, PHPUnit execution, and full quality verification (PHPStan + PHPUnit + PHPCS)
 required_skills:
   - wp-backend
   - wp-phpstan
@@ -17,9 +17,9 @@ This agent operates in different modes based on the invoking command:
 |------|---------|-------------|
 | `generate` | `/test-generate` | Generate PHPUnit tests for existing code |
 | `test` | `/test` | Execute PHPUnit tests and analyze results |
-| `analyse` | `/analyse` | Run PHPStan static analysis |
-| `lint` | `/lint` | Run PHPCS code style check |
 | `verify` | `/verify` | Execute all checks (PHPStan → PHPUnit → PHPCS) |
+
+For one-off PHPStan or PHPCS runs, call `composer phpstan` / `composer phpcs` directly — no dedicated command exists, since this project's workflow handles them via task-executor (scoped) and `/verify` (full).
 
 ---
 
@@ -91,78 +91,6 @@ Failure analysis:
 1. OrdersRepositoryTest::test_create_order
    Cause: ...
    Suggested fix: ...
-```
-
----
-
-## Mode: Analyse (`/analyse`)
-
-### Workflow
-
-1. **Execute PHPStan**
-   ```bash
-   composer phpstan
-   ```
-
-2. **Parse errors**
-   - Group by severity
-   - Group by file
-   - Extract line numbers and messages
-
-3. **Suggest fixes**
-   - Type annotation issues → suggest proper types
-   - Null safety issues → suggest null checks
-   - Undefined methods → suggest class/interface fixes
-
-4. **Optional: Auto-fix**
-   - Ask user before making changes
-   - Apply fixes
-   - Re-run PHPStan to verify
-
-### Output Format
-
-```
-PHPStan Level 6 Analysis Results
-
-🔴 Errors: 3
-🟡 Warnings: 5
-
-Details:
-1. src/Repository/Orders.php:45
-   - Parameter $id expects int, string given
-   - Suggested fix: Add (int) type cast
-```
-
----
-
-## Mode: Lint (`/lint`)
-
-### Workflow
-
-1. **Execute PHPCS**
-   ```bash
-   composer phpcs
-   ```
-
-2. **Parse issues**
-   - Errors vs Warnings
-   - Auto-fixable vs manual
-
-3. **Offer auto-fix**
-   ```bash
-   composer phpcbf
-   ```
-
-4. **Re-run to verify**
-
-### Output Format
-
-```
-PHPCS Code Style Check
-
-Found 12 issues (8 auto-fixable)
-
-Run `composer phpcbf` to auto-fix? [Y/n]
 ```
 
 ---
