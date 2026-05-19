@@ -498,6 +498,9 @@ Using templates from `@everything-wp/skills/wp-plugin-dev-init/templates/`. **Ap
 | 5 | `src/Bootstrap.php` | `Bootstrap.php.template` (if OOP selected) | ✅ Generate | 🔴 Skip if `src/` exists; only generate when user explicitly opts in for empty `src/` |
 | 6 | `src/Activator.php` | `Activator.php.template` (if OOP selected) | ✅ Generate | 🔴 Same as above |
 | 7 | `src/Deactivator.php` | `Deactivator.php.template` (if OOP selected) | ✅ Generate | 🔴 Same as above |
+| 8 | `phpstan.neon` | inline (if PHPStan selected) | ✅ Generate | 🟡 Ask if exists — never overwrite user's custom level / baseline / ignore patterns |
+| 9 | `.phpcs.xml.dist` | inline (if PHPCS selected) | ✅ Generate | 🟡 Ask if exists — never overwrite user's custom ruleset |
+| 10 | `languages/{{TEXT_DOMAIN}}.pot` | `wp i18n make-pot` | ✅ Generate | 🟡 Ask if exists — `.pot` is regenerable but may contain hand-edited headers |
 
 ### Step 5: Additional Setup
 
@@ -569,15 +572,28 @@ After generating files:
    wp scaffold plugin-tests {{PLUGIN_SLUG}}
    ```
 
-5. **Clean up redundant CI configs** (WP-CLI scaffold creates these, but we use GitHub Actions):
+   In Augment mode, follow Step 4's matrix — if `tests/` exists, ask before scaffolding.
+
+5. **Clean up redundant CI configs**:
+
+   WP-CLI scaffold creates `.circleci/` and `.travis.yml` because it assumes those CI providers. We use GitHub Actions instead, so these can usually be removed — **but only if they were just produced by scaffold, not pre-existing user content**.
+
+   **Greenfield mode** (safe to remove unconditionally):
    ```bash
    rm -rf .circleci
    rm -f .travis.yml
    ```
 
+   **Augment mode** (gate on whether scaffold actually ran AND user didn't have them before):
+   - If you skipped `wp scaffold plugin-tests` in step 4, do **nothing** — these files are not yours to touch.
+   - If you ran scaffold and `.circleci/` / `.travis.yml` are newly created by it, you may remove them. But if either existed BEFORE scaffold (rare with `--force`, but possible), do not delete — back up or leave as-is.
+   - Safe default in Augment mode: **leave both files alone** and tell the user to delete manually if they wish.
+
 6. **Create configuration files** (based on installed tools):
 
-   If PHPStan selected, create `phpstan.neon`:
+   **Augment mode**: for `phpstan.neon` and `.phpcs.xml.dist`, follow Step 4's matrix — ask before overwriting any existing file.
+
+   If PHPStan selected and `phpstan.neon` does not exist, create:
    ```neon
    includes:
        - vendor/szepeviktor/phpstan-wordpress/extension.neon
@@ -590,7 +606,7 @@ After generating files:
            - tests
    ```
 
-   If PHPCS selected, create `.phpcs.xml.dist`:
+   If PHPCS selected and `.phpcs.xml.dist` does not exist, create:
    ```xml
    <?xml version="1.0"?>
    <ruleset name="WordPress Plugin Coding Standards">
@@ -659,14 +675,20 @@ After generating files:
    ```bash
    # Create languages directory
    mkdir -p languages
-   
+
    # Generate .pot file using WP-CLI
    wp i18n make-pot . languages/{{TEXT_DOMAIN}}.pot --domain={{TEXT_DOMAIN}}
    ```
-   
+
    This creates:
    - `languages/` directory for translation files
-   - `languages/{{TEXT_DOMAIN}}.pot` - Template file for translations
+   - `languages/{{TEXT_DOMAIN}}.pot` — Template file for translations
+
+   **Augment mode**: if `languages/{{TEXT_DOMAIN}}.pot` already exists, ask before regenerating. `.pot` is technically regenerable from source, but the user may have:
+   - Hand-edited header comments / translator notes
+   - A different text domain than the one auto-detected (running with the new one would leave both files in `languages/`)
+
+   Default to skip in Augment mode; let the user run `wp i18n make-pot` manually when they're ready.
 
 ## Example Interaction
 
