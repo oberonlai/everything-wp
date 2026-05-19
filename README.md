@@ -22,10 +22,12 @@ Install as a Claude Code plugin:
 
 ```
 /plugin marketplace add oberonlai/everything-wp
-/plugin install everything-wp@everything-wp
+/plugin install ewp@everything-wp
 ```
 
-After install, all commands, agents, and skills are immediately available.
+After install, all commands, agents, and skills are immediately available. Plugin commands are invoked with the `/ewp:` namespace prefix — e.g. `/ewp:plan`, `/ewp:todo`, `/ewp:review`.
+
+> The marketplace and repo are named `everything-wp`; the plugin itself uses the shorter alias `ewp` to reduce typing in every invocation.
 
 ### Manual install (Cursor / other tools)
 
