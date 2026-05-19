@@ -6,9 +6,6 @@
     "name": "Oberon Lai"
   },
   "homepage": "https://github.com/oberonlai/everything-wp",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/oberonlai/everything-wp"
-  },
+  "repository": "https://github.com/oberonlai/everything-wp",
   "license": "GPL-2.0-or-later"
 }
