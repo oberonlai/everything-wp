@@ -2,6 +2,8 @@
 
 A comprehensive AI-powered toolkit for WordPress plugin development. This project provides commands, skills, and agents that help AI assistants generate high-quality WordPress plugin code following best practices.
 
+> Other languages: [繁體中文](README.zh-TW.md)
+
 ## 🎯 Overview
 
 Everything WP is designed to work with AI coding assistants (like Claude, Cursor, etc.) to accelerate WordPress plugin development while maintaining code quality and WordPress coding standards.
