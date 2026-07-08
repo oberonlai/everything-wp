@@ -14,6 +14,9 @@ development tooling, following the official WordPress Theme Handbook conventions
 > traditional templating model. This skill supports both — the type is chosen by
 > the user (Greenfield) or auto-detected via `templates/index.html` (Augment).
 
+> For block theme reference knowledge (theme.json details, patterns, style
+> variations, Site Editor debugging), see the `wp-block-themes` skill.
+
 ## Trigger Keywords
 
 This skill is triggered when the user says any of the following:

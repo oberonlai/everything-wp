@@ -333,7 +333,8 @@ everything-wp/
 │   │   └── scripts/
 │   │
 │   ├── wp-theme-dev-init/   # Theme initialization (classic & block)
-│   └── wp-block-theme-pipeline/ # URL → block theme design system pipeline
+│   ├── wp-block-theme-pipeline/ # URL → block theme design system pipeline
+│   └── wp-block-themes/     # Block theme reference knowledge (theme.json, patterns, debugging)
 │       ├── SKILL.md
 │       ├── templates/
 │       └── scripts/

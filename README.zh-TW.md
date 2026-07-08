@@ -333,7 +333,8 @@ everything-wp/
 │   │   └── scripts/
 │   │
 │   ├── wp-theme-dev-init/   # 主題初始化（傳統與區塊）
-│   └── wp-block-theme-pipeline/ # 網址 → 區塊主題設計系統產線
+│   ├── wp-block-theme-pipeline/ # 網址 → 區塊主題設計系統產線
+│   └── wp-block-themes/     # 區塊主題知識庫（theme.json、patterns、除錯）
 │       ├── SKILL.md
 │       ├── templates/
 │       └── scripts/
