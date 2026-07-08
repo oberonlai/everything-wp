@@ -79,6 +79,7 @@ Add the skills path to your configuration.
 | `/todo` | Execute development tasks from a spec file. Supports `--tdd`, `--tdd=unit`, `--tdd=int` for Red-Green-Refactor workflow |
 | `/review` | Senior-engineer code review on the current diff (Security, Performance, Simplification, Test gap, i18n). Generalizable findings become rule proposals for `rules/wp-essentials.md` |
 | `/submit-review` | Review plugin for WordPress.org submission compliance |
+| `/release` | Sync version numbers across all carrier files, commit, tag, and push to trigger the release workflow |
 
 ## 📚 Skills
 

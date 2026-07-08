@@ -1,0 +1,112 @@
+<?php
+/**
+ * Custom Post Type Template
+ *
+ * Registers the {{POST_TYPE}} custom post type (and optional taxonomy).
+ * No dedicated command exists for CPTs — the model knows register_post_type()
+ * well; this template only locks in project conventions:
+ * - All labels translatable with the project text domain.
+ * - Post type key ≤ 20 chars, lowercase, no reserved names (post, page, action, order, theme).
+ * - show_in_rest true when the block editor should be available.
+ * - Rewrite rules flushed on activation only, never on init.
+ *
+ * @package {{NAMESPACE}}
+ */
+
+// ============================================================================
+// FILE: src/PostTypes/{{CLASS_NAME}}.php
+// ============================================================================
+
+<?php
+/**
+ * {{CLASS_NAME}} - Custom Post Type
+ *
+ * Registers the {{POST_TYPE}} post type.
+ *
+ * @package {{NAMESPACE}}\PostTypes
+ */
+
+namespace {{NAMESPACE}}\PostTypes;
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * {{CLASS_NAME}} class.
+ *
+ * Registers the {{POST_TYPE}} custom post type and its taxonomy.
+ */
+class {{CLASS_NAME}} {
+
+	/**
+	 * Post type key.
+	 *
+	 * Max 20 characters, lowercase alphanumeric and underscores only.
+	 *
+	 * @var string
+	 */
+	const POST_TYPE = '{{POST_TYPE}}';
+
+	/**
+	 * Register hooks.
+	 *
+	 * @return void
+	 */
+	public function register() {
+		add_action( 'init', array( $this, 'register_post_type' ) );
+	}
+
+	/**
+	 * Register the custom post type.
+	 *
+	 * @return void
+	 */
+	public function register_post_type() {
+		$labels = array(
+			'name'               => _x( '{{PLURAL_LABEL}}', 'post type general name', '{{TEXT_DOMAIN}}' ),
+			'singular_name'      => _x( '{{SINGULAR_LABEL}}', 'post type singular name', '{{TEXT_DOMAIN}}' ),
+			'menu_name'          => _x( '{{PLURAL_LABEL}}', 'admin menu', '{{TEXT_DOMAIN}}' ),
+			'add_new'            => __( 'Add New', '{{TEXT_DOMAIN}}' ),
+			'add_new_item'       => __( 'Add New {{SINGULAR_LABEL}}', '{{TEXT_DOMAIN}}' ),
+			'edit_item'          => __( 'Edit {{SINGULAR_LABEL}}', '{{TEXT_DOMAIN}}' ),
+			'new_item'           => __( 'New {{SINGULAR_LABEL}}', '{{TEXT_DOMAIN}}' ),
+			'view_item'          => __( 'View {{SINGULAR_LABEL}}', '{{TEXT_DOMAIN}}' ),
+			'search_items'       => __( 'Search {{PLURAL_LABEL}}', '{{TEXT_DOMAIN}}' ),
+			'not_found'          => __( 'No {{PLURAL_LABEL_LOWER}} found.', '{{TEXT_DOMAIN}}' ),
+			'not_found_in_trash' => __( 'No {{PLURAL_LABEL_LOWER}} found in Trash.', '{{TEXT_DOMAIN}}' ),
+			'all_items'          => __( 'All {{PLURAL_LABEL}}', '{{TEXT_DOMAIN}}' ),
+		);
+
+		$args = array(
+			'labels'       => $labels,
+			'public'       => {{IS_PUBLIC}},
+			'show_ui'      => true,
+			'show_in_menu' => true,
+			'show_in_rest' => {{SHOW_IN_REST}}, // True enables the block editor and REST access.
+			'menu_icon'    => '{{MENU_ICON}}',
+			'supports'     => array( {{SUPPORTS}} ),
+			'has_archive'  => {{HAS_ARCHIVE}},
+			'rewrite'      => array( 'slug' => '{{REWRITE_SLUG}}' ),
+			'capability_type' => '{{CAPABILITY_TYPE}}', // Use a custom type + map_meta_cap for per-CPT permissions.
+		);
+
+		register_post_type( self::POST_TYPE, $args );
+	}
+
+	/**
+	 * Flush rewrite rules on plugin activation.
+	 *
+	 * Call from the main plugin file's activation hook — never on init:
+	 *
+	 *   register_activation_hook( __FILE__, array( {{CLASS_NAME}}::class, 'activate' ) );
+	 *
+	 * @return void
+	 */
+	public static function activate() {
+		$instance = new self();
+		$instance->register_post_type();
+		flush_rewrite_rules();
+	}
+}
