@@ -19,12 +19,14 @@ verified mechanically by the consistency audit.
 ```
 /make-block https://reference-site.com
 /make-block designs/home.png designs/about.png
-/make-block https://reference-site.com designs/new-pricing.png   # mixed
+/make-block https://reference-site.com designs/new-pricing.png   # curated mode
 ```
 
-Optionally pass 2-4 representative pages/screens for better extraction
-coverage. With mixed input, URL-derived token values win (computed styles are
-precise) and mockups fill the gaps. The
+URL-only input auto-discovers the site via its sitemap (one representative
+page per template). Mixed input = **curated mode**: your screenshots drive
+coverage (pages, hover/open/error states, breakpoints — the fast path), the
+URL is scanned only to calibrate precise token values, and sitemap discovery
+is skipped. The
 pipeline runs without stopping and ends with the URL of a **UI Library page**
 on your local WordPress site containing every generated block in every
 variant. Review it, report issues in natural language ("主色太暗"、"button
@@ -41,6 +43,7 @@ admin, etc. See the Assembly Mode Guide in `SKILL.md`.
 skills/wp-block-theme-pipeline/
 ├── SKILL.md                        # Constitution, stage details, assembly guide.
 ├── scripts/
+│   ├── discover-pages.mjs          # Sitemap discovery + template clustering.
 │   ├── extract-tokens.js           # agent-browser eval — computed-style scan.
 │   └── audit-consistency.sh        # Single-source enforcement (rg-based).
 └── templates/

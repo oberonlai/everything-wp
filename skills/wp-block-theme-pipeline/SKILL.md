@@ -50,11 +50,28 @@ single-source design makes late corrections cheap: fixing a token in
 
 ### 1. Extract (URL and/or images)
 
-**URL route (agent-browser)** — load each reference URL and run
-`scripts/extract-tokens.js` via `agent-browser eval` — it walks visible
-elements and collects computed styles: colors (with usage counts and roles),
-font sizes/weights/families, spacing values, radii, shadows, and container
-widths. Screenshot each page for the component inventory analysis.
+**URL route** — three sub-steps; never scan only the URL the user gave:
+
+1. **Discover** — `scripts/discover-pages.mjs <site-url>` reads robots.txt +
+   sitemap(s), classifies every URL (`home` / static `page` / `archive` list /
+   `single` detail) by URL-pattern shape, clusters same-template pages, and
+   returns a scanList with ONE representative per cluster. Same layout is
+   never scanned twice. No sitemap → crawl homepage nav links and classify
+   manually. Save the report to `design/page-inventory.json`; if the scanList
+   exceeds ~10 pages, let the user trim it.
+2. **Scan** — for each scanList entry, `agent-browser` loads the page and runs
+   `scripts/extract-tokens.js` via `agent-browser eval` — it walks visible
+   elements and collects computed styles: colors (with usage counts and
+   roles), font sizes/weights/families, spacing values, radii, shadows, and
+   container widths. Screenshot each page.
+3. **Layered inventory** — build the component inventory shared-first:
+   - Pass 1 **shared**: diff pages against each other; anything identical on
+     every page (header, nav, footer) is extracted once and excluded below.
+   - Pass 2 **page sections**: per page type — hero, card-grid, archive list
+     row, single-post byline — tagged with their page type.
+   - Pass 3 **atoms**: buttons, tags, inputs — down to form controls
+     (text/select/textarea/checkbox/radio, error states). Sections reference
+     atoms; atoms are never re-extracted inside a section.
 
 **Image route (design mockups)** — when the input is png/jpg/webp/pdf files
 or pasted images, extract visually:
@@ -68,9 +85,12 @@ or pasted images, extract visually:
   token file. Estimates are corrected at the UI library gate, where the user
   compares rendered blocks against the mockup side by side.
 
-**Mixed input** — URL-derived values win on token conflicts (computed styles
-are precise); images fill the gaps: components, states, and layouts the live
-site does not show.
+**Mixed input = curated mode** — when the user supplies screenshots alongside
+a URL, the screenshots ARE the curation: **skip sitemap discovery**, scan only
+the given URL(s) to calibrate precise token values, and let the screenshots
+drive coverage (components, hover/open/error states, breakpoints). URL-derived
+values win on token conflicts (computed styles are precise); images fill the
+gaps: components, states, and layouts the live site does not show.
 
 Extraction output is a DRAFT, not the truth: third-party widgets add noise,
 hover/focus states are not captured (URL route), image measurements are
@@ -80,12 +100,16 @@ everything in `design/design-tokens.raw.json` and
 gate instead of reviewing raw JSON.
 
 Component inventory taxonomy:
-- **element** — atomic: button, tag, avatar, icon-box, input, section-head
-- **section** — composed: hero, faq, pricing, card-grid, cta-band, logo-wall
+- **shared** — site-wide: header, nav, footer, breadcrumbs
+- **element** — atomic: button, tag, avatar, icon-box, section-head, and form
+  controls (input, select, textarea, checkbox/radio, error states)
+- **section** — composed: hero, faq, pricing, card-grid, cta-band, logo-wall,
+  archive list row
 - **template** — full pages: home, about, archive, single
 
-For each component record: name (kebab-case), variants, content parameters,
-and the pages it appears on.
+For each component record: name (kebab-case), pass level (shared/element/
+section), variants, content parameters, source page type, and the pages it
+appears on.
 
 ### 2. Normalize → theme.json
 
@@ -131,8 +155,18 @@ Conventions:
 
 ### 4. UI Library Page (the single gate)
 
-Generate `patterns/ui-library.php` inserting every block × every variant,
-grouped with heading separators. Create a draft page on the local site via
+`patterns/ui-library.php` follows the FIXED layout in
+`templates/ui-library.php.template`: left sticky menu (25%, anchor links
+grouped Shared / Elements / Sections) + right component showcase (75%, one
+anchored section per block, every variant as a labeled live instance).
+
+Rebuild the pattern **after every completed block** in Stage 3 (menu item +
+section together, ordered shared → element → section) so it is always in sync
+with `blocks/` — a block missing from the UI library is an audit failure.
+Sticky positioning needs `settings.appearanceTools` (or
+`settings.position.sticky`) in theme.json — the pipeline's default enables it.
+
+Create a draft page on the local site via
 WP-CLI (inside the container for wp-env/DDEV) and report:
 - Front-end preview URL + editor URL
 - Table of generated blocks (name, variants, source component)
@@ -214,6 +248,9 @@ package.json                   # @wordpress/scripts build.
 ## Related
 
 - `commands/make-block.md` — the command entry point.
+- `wp-block-themes` — block theme reference knowledge: theme.json details,
+  templates/parts rules, patterns, style variations, Site Editor debugging.
+  Consult it during Stages 2-4 and assembly.
 - `wp-theme-dev-init` — theme chassis (tooling, CI, base templates).
 - `option-page` — global settings pages in assembly mode.
 - `wp-frontend` — CSS/BEM/Gutenberg conventions.

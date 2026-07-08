@@ -2,6 +2,7 @@
 description: Turn a reference website URL into a block theme design system — theme.json tokens, dynamic blocks, and a UI library page for review — fully automated, then assemble pages interactively
 required_skills:
   - wp-block-theme-pipeline
+  - wp-block-themes
   - wp-theme-dev-init
   - wp-frontend
 ---
@@ -59,23 +60,73 @@ Accepted inputs, in any combination:
 - **Image files** — design mockups (png/jpg/webp/pdf), local paths or images
   pasted into the conversation
 
-If no input is given, ask for one. Encourage 2-4 representative pages/screens
-(home, an inner page, an archive/list view) for better extraction coverage.
-When both are available, prefer URLs for token VALUES (precise) and use images
-for components/layout the live site doesn't show yet.
+If no input is given, ask for one. For URL-only input, ONE url is enough —
+Stage 1 discovers the rest of the site via its sitemap and picks one
+representative page per template. For image input, encourage 2-4
+representative screens.
+
+**Curated mode (screenshots + URL together)** — the user's screenshots ARE
+the page/state curation: **skip sitemap discovery entirely**. Scan only the
+exact URL(s) given, solely to calibrate precise token values (computed
+styles); the screenshots drive coverage — components, states (hover, open
+menus, errors), and breakpoints. URL-derived values win on token conflicts;
+images fill everything else.
 
 ## Automated Pipeline (no user gates until the end)
 
 ### Stage 1 — Extract
 
-**URL input** — use `agent-browser` to load each URL and run the extraction
-script (computed styles → precise token values):
+**URL input** — do NOT scan only the URL the user gave. Discover the site's
+page inventory first, then scan one representative page per template.
+
+#### 1a. Discover pages via sitemap
+
+> **Skip this step in curated mode** (user supplied screenshots alongside the
+> URL) — go straight to 1b with only the given URL(s).
+
+```bash
+node @everything-wp/skills/wp-block-theme-pipeline/scripts/discover-pages.mjs <site-url>
+```
+
+The script reads `robots.txt` + `sitemap.xml` / `wp-sitemap.xml` (recursing
+into sitemap indexes), then:
+- **Classifies** every URL: `home` / `page` (static) / `archive` (list) /
+  `single` (post/product detail) — by URL pattern shape
+- **Clusters same-template pages** (e.g. 1,992 × `/blog/{slug}` → ONE
+  cluster) so no two pages sharing a layout are ever both scanned
+- Outputs a `scanList`: home + every static page + one sample per
+  archive/single cluster
+
+If no sitemap exists (exit 2), fall back to crawling the homepage nav links
+and classify those URLs manually with the same taxonomy. If the scanList
+exceeds ~10 pages, show it to the user and let them trim; otherwise proceed.
+Record the full cluster report in `design/page-inventory.json`.
+
+#### 1b. Scan each page in the scanList
 
 ```bash
 agent-browser open <url>
 agent-browser eval "$(cat @everything-wp/skills/wp-block-theme-pipeline/scripts/extract-tokens.js)"
 agent-browser screenshot page-<n>.png
 ```
+
+#### 1c. Layered component extraction — shared → page → atomic
+
+Build the component inventory in THREE passes, in this order:
+
+1. **Shared elements** (appear on every scanned page): header, nav, footer,
+   breadcrumbs. Diff the screenshots/DOM across pages — anything identical
+   everywhere is extracted ONCE as a shared component and excluded from later
+   passes.
+2. **Page-level sections** (unique to a page type): hero, card-grid, pricing,
+   faq, archive list row, single-post byline. Tag each with the page type it
+   came from (`page` / `archive` / `single`).
+3. **Atomic elements** (used inside sections): button, tag, avatar,
+   section-head — down to **form controls** (text input, select, textarea,
+   checkbox/radio, submit button, validation/error states).
+
+This order prevents double-extraction: a button inside the hero is recorded
+once as an atom, and the hero references it.
 
 **Image input** — Read each mockup and extract tokens visually:
 
@@ -95,15 +146,18 @@ agent-browser screenshot page-<n>.png
 With mixed input, URL-derived values win on conflicts; images fill the gaps
 (unseen components, states, layouts).
 
-Then analyze the screenshots/mockups (and DOM when available) to build the
-component inventory:
-- **element** (atoms): button, tag, avatar, input, section-head, …
-- **section** (molecules): hero, faq, pricing, card-grid, …
-- **template** (pages): home, about, single, …
+The component inventory taxonomy (applies to both routes, built via the
+three-pass order in 1c):
+- **shared** (site-wide): header, nav, footer, breadcrumbs
+- **element** (atoms): button, tag, avatar, input, form controls, section-head, …
+- **section** (molecules): hero, faq, pricing, card-grid, archive list row, …
+- **template** (pages): home, about, archive, single, …
 
 Write to disk (as records, not gates):
+- `design/page-inventory.json` — discovered clusters + scanned samples (URL route)
 - `design/design-tokens.raw.json` — raw extracted values
-- `design/component-inventory.md` — each component with variants and the pages it appears on
+- `design/component-inventory.md` — each component with pass level
+  (shared/element/section), variants, page type, and the pages it appears on
 
 ### Stage 2 — theme.json + tooling
 
@@ -135,6 +189,10 @@ Register all blocks from `functions.php` (loop over `blocks/*/block.json` with
 `register_block_type`). Set up `package.json` with `@wordpress/scripts` and run
 `npm install && npm run build`. Fix build errors before proceeding.
 
+**After each block completes**, immediately add it to `patterns/ui-library.php`
+(menu item + anchored variant section — see Stage 4 for the fixed layout).
+The UI library grows with the work instead of being assembled at the end.
+
 **Hard rules** (enforced by the Stage 5 audit):
 - No hex colors or raw px values in block CSS — tokens only
 - No duplicated markup between blocks — shared structure becomes its own block
@@ -142,8 +200,17 @@ Register all blocks from `functions.php` (loop over `blocks/*/block.json` with
 
 ### Stage 4 — UI Library Page
 
-1. Generate `patterns/ui-library.php` — a pattern that inserts **every block ×
-   every variant**, grouped by component with plain heading separators.
+1. Generate `patterns/ui-library.php` from the skill's
+   `templates/ui-library.php.template`. The layout contract is FIXED:
+   - **Left column (25%)**: sticky menu (`position: sticky`), grouped
+     Shared / Elements / Sections, one anchor link per block
+   - **Right column (75%)**: one anchored section per block — heading
+     (anchor id = block slug), then every variant as a labeled live instance,
+     separator between blocks
+   - **Regeneration rule**: rebuild this pattern after EVERY completed block
+     during Stage 3 — menu item + section added together, ordered
+     shared → element → section. The pattern is always in sync with
+     `blocks/`; a block without a UI library entry is an audit failure.
 2. Create a draft page on the local site and give the user both URLs:
    ```bash
    wp post create --post_type=page --post_title='UI Library' --post_status=draft \
@@ -198,6 +265,7 @@ blocks. Re-run the consistency audit after each page.
 
 ```
 design/
+├── page-inventory.json        # Sitemap discovery: clusters + scanned samples.
 ├── design-tokens.raw.json     # Extraction record.
 ├── token-mapping.md           # Raw → semantic audit trail.
 ├── component-inventory.md     # Component list with variants.
