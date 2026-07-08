@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "everything-wp",
-      "description": "End-to-end WordPress plugin development workflow: plan → todo (TDD) → review → verify. Includes 15 commands, 5 agents, and skill knowledge bases.",
+      "description": "End-to-end WordPress plugin development workflow: plan → todo (TDD) → review → verify. Includes 16 commands, 5 agents, and skill knowledge bases.",
       "category": "development",
       "source": "./",
       "homepage": "https://github.com/oberonlai/everything-wp",

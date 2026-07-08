@@ -52,6 +52,7 @@ cp -r everything-wp/* ~/.claude/
 | 指令 | 說明 |
 |------|------|
 | `/init-plugin` | 初始化外掛開發環境，包含測試套件、GitHub Actions 與 build 腳本 |
+| `/init-theme` | 初始化傳統佈景主題，含模板階層、PHPCS、PHPStan、PHPUnit、i18n、GitHub Actions 與 build 腳本 |
 | `/custom-table` | 產生自訂資料表，附帶 Repository 類別處理 CRUD |
 | `/list-table` | 產生 WP_List_Table 類別，用於後台資料顯示 |
 | `/option-page` | 透過 Settings API 產生 WordPress 設定頁 |
@@ -64,7 +65,7 @@ cp -r everything-wp/* ~/.claude/
 
 | 指令 | 說明 |
 |------|------|
-| `/verify` | 執行全部程式碼品質檢查（PHPStan + PHPUnit + PHPCS） |
+| `/verify` | 執行全部程式碼品質檢查（PHPStan + PHPUnit + PHPCS），重複出現的錯誤模式可提案為 `rules/wp-essentials.md` 規則 |
 | `/test` | 執行 PHPUnit 測試並分析失敗原因（開發期快速迭代用） |
 | `/test-generate` | 為既有程式碼產生 PHPUnit 測試（補測舊程式碼用，TDD 流程下不需要） |
 
@@ -74,9 +75,9 @@ cp -r everything-wp/* ~/.claude/
 
 | 指令 | 說明 |
 |------|------|
-| `/plan` | 產生實作計畫，存放於 `spec/<feature-name>/` |
+| `/plan` | 產生實作計畫，存放於 `spec/<feature-name>/`，含 `overview.md` 索引與依開發順序編號的規格檔（`01-`、`02-`…） |
 | `/todo` | 依 spec 檔執行開發任務。支援 `--tdd`、`--tdd=unit`、`--tdd=int` 進行 Red-Green-Refactor |
-| `/review` | 對目前 diff 進行資深工程師等級的審查（Security、Performance、Simplification、Test gap、i18n） |
+| `/review` | 對目前 diff 進行資深工程師等級的審查（Security、Performance、Simplification、Test gap、i18n），可將通用性缺失提案為 `rules/wp-essentials.md` 規則 |
 | `/submit-review` | 檢查外掛是否符合 WordPress.org 提交規範 |
 
 ## 📚 Skills
@@ -295,6 +296,7 @@ AI：📂 審查檔案：3 個
 everything-wp/
 ├── commands/           # 互動式指令工作流程
 │   ├── init-plugin.md
+│   ├── init-theme.md
 │   ├── custom-table.md
 │   ├── list-table.md
 │   ├── option-page.md
@@ -323,7 +325,12 @@ everything-wp/
 │   ├── wp-frontend/    # 前端開發
 │   │   └── coding-standards/
 │   │
-│   └── wp-plugin-dev-init/  # 初始化
+│   ├── wp-plugin-dev-init/  # 外掛初始化
+│   │   ├── SKILL.md
+│   │   ├── templates/
+│   │   └── scripts/
+│   │
+│   └── wp-theme-dev-init/   # 傳統主題初始化
 │       ├── SKILL.md
 │       ├── templates/
 │       └── scripts/

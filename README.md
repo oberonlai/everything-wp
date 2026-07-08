@@ -52,6 +52,7 @@ Add the skills path to your configuration.
 | Command | Description |
 |---------|-------------|
 | `/init-plugin` | Initialize plugin development environment with testing suite, GitHub Actions, and build scripts |
+| `/init-theme` | Initialize a classic theme with template hierarchy, PHPCS, PHPStan, PHPUnit, i18n, GitHub Actions, and build scripts |
 | `/custom-table` | Generate custom database table with Repository class for CRUD operations |
 | `/list-table` | Generate WP_List_Table class for admin data display |
 | `/option-page` | Generate WordPress settings page using Settings API |
@@ -64,7 +65,7 @@ Add the skills path to your configuration.
 
 | Command | Description |
 |---------|-------------|
-| `/verify` | Run all code quality checks (PHPStan + PHPUnit + PHPCS) |
+| `/verify` | Run all code quality checks (PHPStan + PHPUnit + PHPCS). Recurring error patterns become rule proposals for `rules/wp-essentials.md` |
 | `/test` | Execute PHPUnit tests and analyze failures (fast iteration during dev) |
 | `/test-generate` | Generate PHPUnit tests for existing code (legacy retrofit only — not needed in TDD flow) |
 
@@ -74,9 +75,9 @@ Add the skills path to your configuration.
 
 | Command | Description |
 |---------|-------------|
-| `/plan` | Create implementation plan, saved as spec files under `spec/<feature-name>/` |
+| `/plan` | Create implementation plan, saved under `spec/<feature-name>/` as `overview.md` + area files numbered by build order (`01-`, `02-`, …) |
 | `/todo` | Execute development tasks from a spec file. Supports `--tdd`, `--tdd=unit`, `--tdd=int` for Red-Green-Refactor workflow |
-| `/review` | Senior-engineer code review on the current diff (Security, Performance, Simplification, Test gap, i18n) |
+| `/review` | Senior-engineer code review on the current diff (Security, Performance, Simplification, Test gap, i18n). Generalizable findings become rule proposals for `rules/wp-essentials.md` |
 | `/submit-review` | Review plugin for WordPress.org submission compliance |
 
 ## 📚 Skills
@@ -295,6 +296,7 @@ AI: 📂 Files reviewed: 3 files
 everything-wp/
 ├── commands/           # Interactive command workflows
 │   ├── init-plugin.md
+│   ├── init-theme.md
 │   ├── custom-table.md
 │   ├── list-table.md
 │   ├── option-page.md
@@ -323,7 +325,12 @@ everything-wp/
 │   ├── wp-frontend/    # Frontend development
 │   │   └── coding-standards/
 │   │
-│   └── wp-plugin-dev-init/  # Initialization
+│   ├── wp-plugin-dev-init/  # Plugin initialization
+│   │   ├── SKILL.md
+│   │   ├── templates/
+│   │   └── scripts/
+│   │
+│   └── wp-theme-dev-init/   # Classic theme initialization
 │       ├── SKILL.md
 │       ├── templates/
 │       └── scripts/
