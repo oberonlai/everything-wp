@@ -1,0 +1,162 @@
+name: QA, Test and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  qa:
+    name: Coding Standards & Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHP_CodeSniffer
+        run: composer phpcs
+
+      - name: Run PHPStan
+        run: composer phpstan
+
+  test:
+    name: PHPUnit
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.2', '8.0']
+    services:
+      database:
+        image: mysql:latest
+        env:
+          MYSQL_DATABASE: wordpress_test
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Install Subversion
+        run: sudo apt-get update && sudo apt-get install -y subversion
+
+      - name: Install WordPress test suite
+        run: bash bin/install-wp-tests.sh wordpress_test root root 127.0.0.1 latest true
+
+      - name: Run tests
+        run: composer test
+
+  release:
+    name: Build and Release
+    needs: [qa, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get theme version
+        id: version
+        run: |
+          VERSION=$(grep -i "Version:" style.css | head -1 | awk -F: '{print $2}' | tr -d ' \r')
+          # Add v prefix if not present.
+          if [[ ! $VERSION =~ ^v ]]; then
+            VERSION="v${VERSION}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Theme Version: ${VERSION}"
+
+      - name: Create build directory
+        run: mkdir -p build/{{THEME_SLUG}}
+
+      - name: Copy theme files
+        run: |
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.gitignore' \
+            --exclude='.phpcs.xml.dist' \
+            --exclude='.phpcs.cache' \
+            --exclude='phpstan.neon' \
+            --exclude='phpunit.xml.dist' \
+            --exclude='phpunit.xml' \
+            --exclude='.phpunit.result.cache' \
+            --exclude='tests' \
+            --exclude='bin' \
+            --exclude='node_modules' \
+            --exclude='build' \
+            --exclude='vendor' \
+            --exclude='composer.json' \
+            --exclude='composer.lock' \
+            --exclude='*.sh' \
+            --exclude='CLAUDE.md' \
+            --exclude='.claude' \
+            --exclude='scripts' \
+            --exclude='.wp-env.json' \
+            --exclude='.wp-env.override.json' \
+            --exclude='.wp-env' \
+            --exclude='.ddev' \
+            --exclude='local-config.php' \
+            . build/{{THEME_SLUG}}/
+
+      - name: Create ZIP file
+        run: |
+          cd build
+          zip -r {{THEME_SLUG}}-${{ steps.version.outputs.version }}.zip {{THEME_SLUG}}
+          cd ..
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s" --no-merges)
+          else
+            CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+          fi
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.version.outputs.version }}
+          body: |
+            ## 🎉 Version ${{ steps.version.outputs.version }}
+
+            ### 📝 Changes
+            ${{ steps.changelog.outputs.changelog }}
+
+            ### 📦 Installation
+            1. Download `{{THEME_SLUG}}-${{ steps.version.outputs.version }}.zip` below
+            2. Go to WordPress Admin > Appearance > Themes > Add New > Upload Theme
+            3. Select the downloaded ZIP file and install
+            4. Activate the theme
+          files: |
+            build/{{THEME_SLUG}}-${{ steps.version.outputs.version }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

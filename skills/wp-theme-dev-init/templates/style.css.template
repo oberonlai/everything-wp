@@ -1,0 +1,48 @@
+/*
+Theme Name: {{THEME_NAME}}
+Theme URI: {{THEME_URI}}
+Author: {{AUTHOR_NAME}}
+Author URI: {{AUTHOR_URI}}
+Description: {{THEME_DESCRIPTION}}
+Version: {{THEME_VERSION}}
+Requires at least: {{REQUIRES_WP}}
+Tested up to: {{TESTED_UP_TO}}
+Requires PHP: {{REQUIRES_PHP}}
+License: {{LICENSE}}
+License URI: {{LICENSE_URI}}
+Text Domain: {{TEXT_DOMAIN}}
+Domain Path: /languages
+Tags: {{TAGS}}
+*/
+
+/*
+ * This file holds the theme header WordPress reads to register the theme.
+ * It is also enqueued as the front-end stylesheet via get_stylesheet_uri()
+ * in inc/enqueue.php. Add global CSS below, or split larger styles into
+ * assets/css/ and enqueue them separately.
+ */
+
+:root {
+	--content-width: 1200px;
+}
+
+body {
+	margin: 0;
+	font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	line-height: 1.6;
+}
+
+.site-main {
+	max-width: var(--content-width);
+	margin: 0 auto;
+	padding: 1rem;
+}
+
+.screen-reader-text {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(1px, 1px, 1px, 1px);
+	word-wrap: normal !important;
+}

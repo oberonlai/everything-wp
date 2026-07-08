@@ -1,0 +1,31 @@
+=== {{THEME_NAME}} ===
+Contributors: {{AUTHOR_NAME}}
+Requires at least: {{REQUIRES_WP}}
+Tested up to: {{TESTED_UP_TO}}
+Requires PHP: {{REQUIRES_PHP}}
+Stable tag: {{THEME_VERSION}}
+License: {{LICENSE}}
+License URI: {{LICENSE_URI}}
+Tags: {{TAGS}}
+
+{{THEME_DESCRIPTION}}
+
+== Description ==
+
+{{THEME_DESCRIPTION}}
+
+== Installation ==
+
+1. In your WordPress dashboard go to Appearance > Themes > Add New > Upload Theme.
+2. Upload the theme ZIP file and click Install Now.
+3. Click Activate to start using the theme.
+
+== Changelog ==
+
+= {{THEME_VERSION}} =
+* Initial release.
+
+== Copyright ==
+
+{{THEME_NAME}} WordPress Theme, (C) {{AUTHOR_NAME}}.
+{{THEME_NAME}} is distributed under the terms of the {{LICENSE}}.

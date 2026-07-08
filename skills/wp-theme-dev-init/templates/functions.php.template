@@ -1,0 +1,23 @@
+<?php
+/**
+ * {{THEME_NAME}} functions and definitions.
+ *
+ * @package {{THEME_NAME}}
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+// Define the theme version constant, used to cache-bust enqueued assets.
+if ( ! defined( '{{CONST_PREFIX}}_VERSION' ) ) {
+	// Read the version from style.css so it stays the single source of truth.
+	$theme = wp_get_theme();
+	define( '{{CONST_PREFIX}}_VERSION', $theme->get( 'Version' ) );
+}
+
+// Theme setup: supports, menus, text domain, widget areas.
+require_once get_template_directory() . '/inc/setup.php';
+
+// Front-end asset enqueue logic.
+require_once get_template_directory() . '/inc/enqueue.php';

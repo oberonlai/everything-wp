@@ -1,0 +1,32 @@
+<?php
+/**
+ * The main template file — the ultimate fallback in the template hierarchy.
+ *
+ * This file is required for WordPress to recognize the directory as a theme.
+ *
+ * @package {{THEME_NAME}}
+ */
+
+get_header();
+?>
+
+<main id="primary" class="site-main">
+	<?php
+	if ( have_posts() ) {
+
+		while ( have_posts() ) {
+			the_post();
+			get_template_part( 'template-parts/content', get_post_type() );
+		}
+
+		the_posts_navigation();
+
+	} else {
+		get_template_part( 'template-parts/content', 'none' );
+	}
+	?>
+</main><!-- #primary -->
+
+<?php
+get_sidebar();
+get_footer();

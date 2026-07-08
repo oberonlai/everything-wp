@@ -1,0 +1,50 @@
+<?php
+/**
+ * Enqueue theme styles and scripts.
+ *
+ * @package {{THEME_NAME}}
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+if ( ! function_exists( '{{FUNCTION_PREFIX}}_enqueue_assets' ) ) {
+	/**
+	 * Enqueue the theme's front-end assets.
+	 *
+	 * @return void
+	 */
+	function {{FUNCTION_PREFIX}}_enqueue_assets() {
+		// The main stylesheet (style.css in the theme root).
+		wp_enqueue_style(
+			'{{THEME_SLUG}}-style',
+			get_stylesheet_uri(),
+			array(),
+			{{CONST_PREFIX}}_VERSION
+		);
+
+		// Example: an extra stylesheet compiled into assets/css/.
+		// wp_enqueue_style(
+		// 	'{{THEME_SLUG}}-main',
+		// 	get_template_directory_uri() . '/assets/css/main.css',
+		// 	array(),
+		// 	{{CONST_PREFIX}}_VERSION
+		// );
+
+		// Example: a theme script from assets/js/, loaded in the footer.
+		// wp_enqueue_script(
+		// 	'{{THEME_SLUG}}-script',
+		// 	get_template_directory_uri() . '/assets/js/main.js',
+		// 	array(),
+		// 	{{CONST_PREFIX}}_VERSION,
+		// 	true
+		// );
+
+		// Load the reply script on singular views with threaded comments enabled.
+		if ( is_singular() && comments_open() && get_option( 'thread_comments' ) ) {
+			wp_enqueue_script( 'comment-reply' );
+		}
+	}
+}
+add_action( 'wp_enqueue_scripts', '{{FUNCTION_PREFIX}}_enqueue_assets' );
