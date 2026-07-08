@@ -1,0 +1,23 @@
+/*
+Theme Name: {{THEME_NAME}}
+Theme URI: {{THEME_URI}}
+Author: {{AUTHOR_NAME}}
+Author URI: {{AUTHOR_URI}}
+Description: {{THEME_DESCRIPTION}}
+Version: {{THEME_VERSION}}
+Requires at least: {{REQUIRES_WP}}
+Tested up to: {{TESTED_UP_TO}}
+Requires PHP: {{REQUIRES_PHP}}
+License: {{LICENSE}}
+License URI: {{LICENSE_URI}}
+Text Domain: {{TEXT_DOMAIN}}
+Domain Path: /languages
+Tags: {{TAGS}}
+*/
+
+/*
+ * This file holds the theme header WordPress reads to register the theme.
+ * In a block theme, global styles (colors, typography, spacing, layout)
+ * belong in theme.json — keep this file for the header and for small CSS
+ * tweaks that theme.json cannot express.
+ */

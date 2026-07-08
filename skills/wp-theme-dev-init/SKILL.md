@@ -1,17 +1,18 @@
 ---
-description: Initialize WordPress classic theme development environment with template hierarchy, PHPCS, PHPStan, PHPUnit, i18n, GitHub Actions, and build scripts
+description: Initialize WordPress theme development environment (classic or block) with templates, PHPCS, PHPStan, PHPUnit, i18n, GitHub Actions, and build scripts
 ---
 
-# WordPress Classic Theme Development Initialization Skill
+# WordPress Theme Development Initialization Skill
 
-This skill scaffolds a complete **classic (PHP-based) WordPress theme** and its
+This skill scaffolds a complete WordPress theme — **classic** (PHP template
+hierarchy) or **block** (HTML block templates + `theme.json`) — and its
 development tooling, following the official WordPress Theme Handbook conventions.
 
 > **Note on theme type**: WordPress officially recommends **block themes** as the
-> modern method. This skill intentionally targets **classic themes** (PHP template
-> hierarchy: `index.php`, `header.php`, `single.php`, …) for projects that need the
-> traditional templating model. If you want a block theme instead, this skill is not
-> the right tool.
+> modern method; **classic themes** (PHP template hierarchy: `index.php`,
+> `header.php`, `single.php`, …) remain fully supported for projects that need the
+> traditional templating model. This skill supports both — the type is chosen by
+> the user (Greenfield) or auto-detected via `templates/index.html` (Augment).
 
 ## Trigger Keywords
 
@@ -19,22 +20,34 @@ This skill is triggered when the user says any of the following:
 - "Initialize WordPress theme development"
 - "Set up WordPress classic theme"
 - "Scaffold a classic WordPress theme"
+- "Set up a block theme" / "Scaffold a WordPress block theme"
 - "請幫我初始化 WordPress 佈景主題開發"
 - "建立傳統主題開發環境"
+- "建立區塊主題（block theme）開發環境"
 
 ## Features
 
 1. **Detect Theme Information (Augment mode)**
    - Reads the `style.css` header of an existing theme
-   - Extracts theme name, slug (text domain), and version
+   - Extracts theme name, slug (text domain), version, and type
+     (`block` if `templates/index.html` exists, else `classic`)
 
-2. **Scaffold Classic Theme Files (Greenfield mode)**
+2. **Scaffold Classic Theme Files (Greenfield mode, classic)**
    - `style.css` (theme header + starter CSS), `index.php` (required)
    - `functions.php` + `inc/setup.php` + `inc/enqueue.php`
    - Template hierarchy: `header.php`, `footer.php`, `sidebar.php`,
      `single.php`, `page.php`, `archive.php`, `search.php`, `404.php`,
      `comments.php`
    - `template-parts/content.php`, `template-parts/content-none.php`
+
+2b. **Scaffold Block Theme Files (Greenfield mode, block)** — templates in
+   `templates/block/`
+   - `style.css` (theme header only — global styles live in `theme.json`)
+   - `theme.json` (v3 schema: layout, typography, color palette, template parts)
+   - Minimal `functions.php` (text domain, editor style, stylesheet enqueue)
+   - Block templates: `templates/index.html` (required), `single.html`,
+     `page.html`, `archive.html`, `search.html`, `404.html`
+   - Template parts: `parts/header.html`, `parts/footer.html`
 
 3. **Configure Coding Standards**
    - Installs PHP_CodeSniffer + WordPress Coding Standards (WPCS)
@@ -43,7 +56,9 @@ This skill is triggered when the user says any of the following:
 
 4. **Configure Static Analysis (PHPStan)**
    - Installs `phpstan/phpstan` + `szepeviktor/phpstan-wordpress`
-   - Generates `phpstan.neon` (level 5, scans `functions.php`, `inc/`, `template-parts/`)
+   - Generates `phpstan.neon` (level 5; classic scans `functions.php`, `inc/`,
+     `template-parts/` — block scans `functions.php` only, via
+     `block/phpstan.neon.template`)
 
 5. **Configure Unit Testing (PHPUnit)**
    - Installs `phpunit/phpunit:^9.6`, `wp-phpunit/wp-phpunit`, `yoast/phpunit-polyfills`
@@ -53,6 +68,7 @@ This skill is triggered when the user says any of the following:
 
 6. **Set Up Internationalization (i18n)**
    - Creates `languages/` and generates a `.pot` via `wp i18n make-pot`
+     (also extracts strings from `theme.json` and block template HTML)
    - Wires `load_theme_textdomain()` and `Domain Path: /languages`
 
 7. **Set Up GitHub Actions**
@@ -62,6 +78,24 @@ This skill is triggered when the user says any of the following:
 
 8. **Create Build Script**
    - `scripts/build.php` produces a distributable ZIP, excluding dev files
+
+## Official Recommended Route (Block Theme)
+
+Grounded in the WordPress Theme Handbook:
+
+1. **`style.css`** — required, same header rules as classic. Global styles do
+   NOT go here; they live in `theme.json`.
+2. **`templates/index.html`** — required. Its presence is what makes WordPress
+   treat the theme as a block theme.
+3. **`theme.json`** — the heart of a block theme: settings (layout, typography,
+   color, spacing), styles, and template-part registration. Use `"version": 3`
+   (WordPress 6.6+).
+4. **`parts/`** — reusable template parts (header, footer) referenced by
+   templates via `<!-- wp:template-part /-->`.
+5. **`functions.php`** — optional and minimal; most classic theme supports
+   (`title-tag`, `html5`, `post-thumbnails`, …) are automatic in block themes.
+6. **Site Editor** — end users customize templates visually; keep the shipped
+   templates simple and let `theme.json` drive the design.
 
 ## Official Recommended Route (Classic Theme)
 
@@ -119,9 +153,11 @@ the agent following `commands/init-theme.md`, generating files from templates.
 ## Output
 
 After completion, the following may be created:
-- `style.css`, `index.php`, `functions.php` and the template hierarchy
-- `inc/setup.php`, `inc/enqueue.php`
-- `template-parts/content.php`, `template-parts/content-none.php`
+- Classic: `style.css`, `index.php`, `functions.php` and the template hierarchy,
+  `inc/setup.php`, `inc/enqueue.php`,
+  `template-parts/content.php`, `template-parts/content-none.php`
+- Block: `style.css`, `theme.json`, minimal `functions.php`,
+  `templates/*.html`, `parts/header.html`, `parts/footer.html`
 - `composer.json` (PHPCS + PHPStan + PHPUnit dev tools + scripts)
 - `.phpcs.xml.dist`, `phpstan.neon`, `phpunit.xml.dist`
 - `tests/bootstrap.php`, `tests/test-sample.php`, `bin/install-wp-tests.sh`

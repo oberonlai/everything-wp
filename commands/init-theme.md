@@ -1,5 +1,5 @@
 ---
-description: Initialize a WordPress classic theme with template hierarchy, PHPCS, PHPStan, PHPUnit, i18n, GitHub Actions, and build scripts
+description: Initialize a WordPress theme (classic or block) with templates, PHPCS, PHPStan, PHPUnit, i18n, GitHub Actions, and build scripts
 required_skills:
   - wp-theme-dev-init
   - wp-frontend
@@ -7,17 +7,18 @@ required_skills:
 
 # Init Theme Command
 
-This command scaffolds a complete **classic (PHP-based) WordPress theme** and its
-development environment, following the official WordPress Theme Handbook.
+This command scaffolds a complete WordPress theme — **classic** (PHP template
+hierarchy) or **block** (block templates + `theme.json`) — and its development
+environment, following the official WordPress Theme Handbook.
 
 > **Theme type**: WordPress officially recommends **block themes** as the modern
-> method. This command intentionally targets **classic themes** (the PHP template
-> hierarchy). If the user wants a block theme, tell them this command is for
-> classic themes and stop.
+> method; classic themes remain fully supported for projects that need the PHP
+> templating model. This command supports both — ask the user which one they
+> want (Greenfield), or auto-detect it (Augment).
 
 ## What This Command Does
 
-1. **Detect Mode** — Greenfield (new theme) vs Augment (existing theme)
+1. **Detect Mode** — Greenfield (new theme) vs Augment (existing theme), and the theme type (classic vs block)
 2. **Collect Theme Information** — via AskUserQuestion (Greenfield only)
 3. **Generate Files** — from templates in the skill's `templates/` folder
 4. **Configure Tooling** — PHPCS, PHPStan, PHPUnit, i18n, GitHub Actions, build script
@@ -25,8 +26,8 @@ development environment, following the official WordPress Theme Handbook.
 
 ## When to Use
 
-- Starting a new classic WordPress theme
-- Adding coding standards / CI / build tooling to an existing classic theme
+- Starting a new classic or block WordPress theme
+- Adding coding standards / CI / build tooling to an existing theme (either type)
 
 ## How It Works
 
@@ -40,9 +41,13 @@ development environment, following the official WordPress Theme Handbook.
 1. Look for style.css in the project root.
 2. If style.css exists AND contains a `Theme Name:` header → Augment mode.
    Otherwise → Greenfield mode candidate — verify the directory is safe first.
+3. In Augment mode, detect the theme type:
+   templates/index.html exists → block theme; otherwise → classic theme.
+   (theme.json alone is NOT enough — classic themes may also ship one.)
 ```
 
-You may use the helper script (does the same detection and outputs JSON):
+You may use the helper script (does the same detection — including the `type`
+field, `block` or `classic` — and outputs JSON):
 ```bash
 php @everything-wp/skills/wp-theme-dev-init/scripts/detect-theme.php .
 ```
@@ -72,9 +77,9 @@ Default No.
 
 | Concern | Greenfield | Augment |
 |---------|-----------|---------|
-| `style.css` (theme header) | Generate from `style.css.template` | **Do not touch.** Parse it to auto-fill name / slug / version / text domain. |
-| Template files (`index.php`, `header.php`, …) | Generate all from templates | **Skip by default.** Only generate a specific template if it does not already exist AND the user opts in. |
-| `functions.php`, `inc/` | Generate | Skip if `functions.php` exists; never overwrite. Offer to add `inc/` files only if missing. |
+| `style.css` (theme header) | Generate from `style.css.template` (block: `block/style.css.template`) | **Do not touch.** Parse it to auto-fill name / slug / version / text domain / type. |
+| Template files (classic: `index.php`, `header.php`, …; block: `templates/*.html`, `parts/*.html`, `theme.json`) | Generate all from templates | **Skip by default.** Only generate a specific template if it does not already exist AND the user opts in. |
+| `functions.php`, `inc/` | Generate (block themes get a minimal `functions.php`, no `inc/`) | Skip if `functions.php` exists; never overwrite. Offer to add `inc/` files only if missing (classic only). |
 | `composer.json` | Create via `setup-composer.php` | Merge new keys via `setup-composer.php` (deep-merge, backs up first). |
 | `.phpcs.xml.dist` | Generate | Ask if exists; never overwrite a custom ruleset. |
 | `.github/workflows/release.yml` | Generate | Ask if exists. |
@@ -86,7 +91,7 @@ Default No.
 
 #### Augment mode interaction rules
 
-- **Announce the mode**: `Detected existing theme: <name> v<version>. Running in AUGMENT mode — will not touch style.css or existing template files.`
+- **Announce the mode and type**: `Detected existing <classic|block> theme: <name> v<version>. Running in AUGMENT mode — will not touch style.css or existing template files.`
 - **Auto-fill what you can** from `style.css` (name, slug, version, text domain).
 - **For every potentially destructive write**, ask: `<file> already exists. (o)verwrite / (s)kip / (b)ack up and replace?`
 - **Default to skip.**
@@ -101,11 +106,20 @@ bash @everything-wp/skills/wp-theme-dev-init/scripts/init.sh
 
 Use the AskUserQuestion tool. Ask multiple questions per call for efficiency.
 
-**First Question Set (Theme Identity):**
+**First Question Set (Theme Type + Identity):**
 
 ```json
 {
   "questions": [
+    {
+      "question": "Which theme type do you want to build?",
+      "header": "Theme Type",
+      "multiSelect": false,
+      "options": [
+        { "label": "Block theme (Recommended)", "description": "Modern approach: HTML block templates + theme.json, fully editable in the Site Editor" },
+        { "label": "Classic theme", "description": "Traditional PHP template hierarchy (header.php, single.php, …)" }
+      ]
+    },
     {
       "question": "What is the theme name? (e.g., 'My Cool Theme')",
       "header": "Theme Name",
@@ -181,8 +195,11 @@ Also collect (with sensible defaults, ask only if the user wants to change them)
 
 ### Step 3: Files to Generate
 
-Templates live in `@everything-wp/skills/wp-theme-dev-init/templates/`. Apply the
-mode rules from Step 0. Replace all `{{PLACEHOLDER}}` tokens.
+Templates live in `@everything-wp/skills/wp-theme-dev-init/templates/`. Block
+theme templates live in the `block/` subfolder. Apply the mode rules from
+Step 0. Replace all `{{PLACEHOLDER}}` tokens.
+
+#### 3a. Theme files — Classic theme
 
 | # | File | Template | Greenfield | Augment |
 |---|------|----------|-----------|---------|
@@ -194,9 +211,28 @@ mode rules from Step 0. Replace all `{{PLACEHOLDER}}` tokens.
 | 6 | `header.php` / `footer.php` / `sidebar.php` | respective templates | ✅ Generate | 🟡 Skip if exists |
 | 7 | `single.php` / `page.php` / `archive.php` / `search.php` / `404.php` / `comments.php` | respective templates | ✅ Generate | 🟡 Skip if exists |
 | 8 | `template-parts/content.php` / `content-none.php` | respective templates | ✅ Generate | 🟡 Skip if exists |
+
+#### 3b. Theme files — Block theme
+
+| # | File | Template | Greenfield | Augment |
+|---|------|----------|-----------|---------|
+| 1 | `style.css` | `block/style.css.template` | ✅ Generate | 🔴 Skip — never touch |
+| 2 | `theme.json` | `block/theme.json.template` | ✅ Generate | 🔴 Skip if exists |
+| 3 | `functions.php` | `block/functions.php.template` (minimal) | ✅ Generate | 🔴 Skip if exists |
+| 4 | `templates/index.html` | `block/templates/index.html.template` (required) | ✅ Generate | 🟡 Skip if exists |
+| 5 | `templates/single.html` / `page.html` / `archive.html` / `search.html` / `404.html` | respective `block/templates/*.template` | ✅ Generate | 🟡 Skip if exists |
+| 6 | `parts/header.html` / `parts/footer.html` | respective `block/parts/*.template` | ✅ Generate | 🟡 Skip if exists |
+
+> Block templates and parts are plain block-markup HTML — they carry no
+> `{{PLACEHOLDER}}` tokens except in `functions.php` and `style.css`.
+
+#### 3c. Shared tooling files (both types)
+
+| # | File | Template | Greenfield | Augment |
+|---|------|----------|-----------|---------|
 | 9 | `readme.txt` | `readme.txt.template` | ✅ Generate | 🟡 Ask if exists |
 | 10 | `.phpcs.xml.dist` | `phpcs.xml.dist.template` | ✅ Generate | 🟡 Ask if exists |
-| 11 | `phpstan.neon` | `phpstan.neon.template` | ✅ Generate | 🟡 Ask if exists |
+| 11 | `phpstan.neon` | `phpstan.neon.template` (classic) / `block/phpstan.neon.template` (block — scans `functions.php` only) | ✅ Generate | 🟡 Ask if exists |
 | 12 | `phpunit.xml.dist` | `phpunit.xml.dist.template` | ✅ Generate | 🟡 Ask if exists |
 | 13 | `tests/bootstrap.php` | `tests/bootstrap.php.template` (theme-aware) | ✅ Generate | 🟡 Ask if exists |
 | 14 | `tests/test-sample.php` | `tests/test-sample.php.template` | ✅ Generate | 🟡 Ask if exists |
@@ -236,7 +272,9 @@ values if the user wants them.
    mkdir -p languages
    wp i18n make-pot . languages/{{TEXT_DOMAIN}}.pot --domain={{TEXT_DOMAIN}}
    ```
-   (In Augment mode, ask before regenerating an existing `.pot`.)
+   (In Augment mode, ask before regenerating an existing `.pot`. For block
+   themes, `make-pot` also extracts translatable strings from `theme.json` and
+   the `templates/` / `parts/` HTML files.)
 
 4. **Update `.gitignore`** (append only missing lines): `/vendor/`, `/build/`,
    `.phpcs.cache`, `phpunit.xml`, `.phpunit.result.cache`, `/node_modules/`,
@@ -266,16 +304,18 @@ to add `screenshot.png`.
 ```
 User: /init-theme
 
-Claude: I'll set up a classic WordPress theme. First, let me detect the mode…
+Claude: I'll set up a WordPress theme. First, let me detect the mode…
         No style.css found → Greenfield mode. This looks like a fresh folder.
 
-[Uses AskUserQuestion for theme identity, header fields]
+[Uses AskUserQuestion for theme type, identity, header fields]
 
-Claude: Generating theme files (style.css, index.php, functions.php, template
-        hierarchy), configuring PHPCS, PHPStan, PHPUnit, i18n, GitHub Actions, and
-        the build script… Running composer phpcs / phpstan / test / build to verify.
+Claude: (Block theme selected) Generating theme files (style.css, theme.json,
+        functions.php, templates/*.html, parts/*.html), configuring PHPCS,
+        PHPStan, PHPUnit, i18n, GitHub Actions, and the build script…
+        Running composer phpcs / phpstan / test / build to verify.
 
-        ✅ Done. Add a screenshot.png (1200×900) and you're ready to develop.
+        ✅ Done. Add a screenshot.png (1200×900) and you're ready to develop —
+        open the Site Editor to customize templates visually.
 ```
 
 ## Requirements
@@ -288,5 +328,5 @@ Claude: Generating theme files (style.css, index.php, functions.php, template
 ## Related
 
 - `/init-plugin` — the plugin counterpart.
-- `wp-theme-dev-init` — the underlying skill with full documentation.
+- `wp-theme-dev-init` — the underlying skill with full documentation (classic + block).
 - `wp-frontend` — WordPress frontend development patterns.

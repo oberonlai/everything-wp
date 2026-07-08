@@ -1,0 +1,13 @@
+<!-- wp:group {"tagName":"footer","style":{"spacing":{"padding":{"top":"2rem","bottom":"2rem"}}},"layout":{"type":"constrained"}} -->
+<footer class="wp-block-group" style="padding-top:2rem;padding-bottom:2rem">
+	<!-- wp:group {"align":"wide","layout":{"type":"flex","justifyContent":"space-between","flexWrap":"wrap"}} -->
+	<div class="wp-block-group alignwide">
+		<!-- wp:site-title {"level":0,"fontSize":"small"} /-->
+
+		<!-- wp:paragraph {"fontSize":"small"} -->
+		<p class="has-small-font-size">Proudly powered by WordPress</p>
+		<!-- /wp:paragraph -->
+	</div>
+	<!-- /wp:group -->
+</footer>
+<!-- /wp:group -->

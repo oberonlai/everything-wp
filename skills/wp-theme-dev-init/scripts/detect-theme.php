@@ -52,6 +52,13 @@ if ( preg_match( '/Text Domain:\s*(.+)/i', $content, $matches ) ) {
 $info['textdomain'] = $info['slug'];
 $info['file']       = 'style.css';
 
+// Detect the theme type: a block theme ships templates/index.html (theme.json alone is not enough).
+if ( file_exists( $themeDir . '/templates/index.html' ) ) {
+	$info['type'] = 'block';
+} else {
+	$info['type'] = 'classic';
+}
+
 // Validate the required field.
 if ( empty( $info['name'] ) ) {
 	fwrite( STDERR, "Error: Could not extract Theme Name from style.css\n" );

@@ -1,17 +1,18 @@
-# WordPress Classic Theme Development Initialization Skill
+# WordPress Theme Development Initialization Skill
 
-A complete automation skill for scaffolding a **classic (PHP-based) WordPress
-theme** and its development environment, following the official Theme Handbook.
+A complete automation skill for scaffolding a WordPress theme — **classic**
+(PHP template hierarchy) or **block** (block templates + `theme.json`) — and
+its development environment, following the official Theme Handbook.
 
-> WordPress officially recommends **block themes** as the modern method. This
-> skill targets **classic themes** by design. Choose it when you want the
-> traditional PHP template hierarchy.
+> WordPress officially recommends **block themes** as the modern method;
+> classic themes remain fully supported. This skill scaffolds either type.
 
 ## Features
 
 - ✅ Classic theme template hierarchy scaffold (`index.php`, `header.php`, …)
-- ✅ `functions.php` with official `add_theme_support` setup
-- ✅ Existing-theme detection (Augment mode)
+- ✅ Block theme scaffold (`theme.json`, `templates/*.html`, `parts/*.html`)
+- ✅ `functions.php` with official `add_theme_support` setup (minimal for block)
+- ✅ Existing-theme detection (Augment mode) incl. classic/block type
 - ✅ PHP_CodeSniffer + WPCS coding standards
 - ✅ PHPStan static analysis (`szepeviktor/phpstan-wordpress`)
 - ✅ PHPUnit with a theme-aware test bootstrap
@@ -93,6 +94,28 @@ my-cool-theme/
 ├── phpunit.xml.dist
 ├── scripts/build.php
 └── .github/workflows/release.yml
+```
+
+## Directory Layout of a Generated Block Theme
+
+```
+my-cool-theme/
+├── style.css              # Required — theme header only; styles live in theme.json.
+├── theme.json             # Settings, styles, and template-part registration (v3).
+├── functions.php          # Minimal: text domain, editor style, stylesheet enqueue.
+├── templates/
+│   ├── index.html         # Required — its presence marks this as a block theme.
+│   ├── single.html
+│   ├── page.html
+│   ├── archive.html
+│   ├── search.html
+│   └── 404.html
+├── parts/
+│   ├── header.html
+│   └── footer.html
+├── tests/ · bin/ · languages/ · scripts/ · .github/   # Same tooling as classic.
+├── composer.json · .phpcs.xml.dist · phpstan.neon · phpunit.xml.dist
+└── screenshot.png         # Add manually — recommended 1200×900.
 ```
 
 ## Composer Scripts

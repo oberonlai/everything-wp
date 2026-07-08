@@ -1,0 +1,50 @@
+<?php
+/**
+ * {{THEME_NAME}} functions and definitions.
+ *
+ * Block themes need very little PHP: templates live in templates/ and
+ * parts/, and global styles live in theme.json. This file only wires up
+ * the text domain and the stylesheet.
+ *
+ * @package {{THEME_NAME}}
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+// Define the theme version constant, used to cache-bust enqueued assets.
+if ( ! defined( '{{CONST_PREFIX}}_VERSION' ) ) {
+	// Read the version from style.css so it stays the single source of truth.
+	$theme = wp_get_theme();
+	define( '{{CONST_PREFIX}}_VERSION', $theme->get( 'Version' ) );
+}
+
+/**
+ * Theme setup: translations and editor styles.
+ *
+ * @return void
+ */
+function {{FUNCTION_PREFIX}}_setup() {
+	// Make the theme translatable via languages/*.mo files.
+	load_theme_textdomain( '{{TEXT_DOMAIN}}', get_template_directory() . '/languages' );
+
+	// Mirror style.css inside the block editor.
+	add_editor_style( 'style.css' );
+}
+add_action( 'after_setup_theme', '{{FUNCTION_PREFIX}}_setup' );
+
+/**
+ * Enqueue the theme stylesheet on the front end.
+ *
+ * @return void
+ */
+function {{FUNCTION_PREFIX}}_enqueue_assets() {
+	wp_enqueue_style(
+		'{{THEME_SLUG}}-style',
+		get_stylesheet_uri(),
+		array(),
+		{{CONST_PREFIX}}_VERSION
+	);
+}
+add_action( 'wp_enqueue_scripts', '{{FUNCTION_PREFIX}}_enqueue_assets' );

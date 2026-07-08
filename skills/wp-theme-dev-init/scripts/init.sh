@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# WordPress Classic Theme Development Initialization Script.
+# WordPress Theme Development Initialization Script (classic & block).
 # 此腳本針對「已有 style.css 主題」的 Augment 模式，補齊開發工具與 CI。
+# 會自動偵測 classic / block theme，並套用對應的 PHPStan 掃描路徑。
 # Greenfield（全新主題）流程由 agent 依 init-theme.md 執行 template 步驟。
 
 set -e  # 遇到錯誤立即停止。
@@ -53,7 +54,7 @@ TEMPLATES_DIR="$SKILL_DIR/templates"
 PROJECT_DIR="$(pwd)"
 
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}WordPress 傳統主題開發環境初始化${NC}"
+echo -e "${BLUE}WordPress 佈景主題開發環境初始化${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
@@ -76,6 +77,7 @@ THEME_NAME=$(echo "$THEME_INFO" | jq -r '.name')
 THEME_SLUG=$(echo "$THEME_INFO" | jq -r '.slug')
 THEME_VERSION=$(echo "$THEME_INFO" | jq -r '.version')
 TEXT_DOMAIN=$(echo "$THEME_INFO" | jq -r '.textdomain')
+THEME_TYPE=$(echo "$THEME_INFO" | jq -r '.type // "classic"')
 
 echo -e "${GREEN}✓ 偵測完成${NC}"
 echo ""
@@ -86,6 +88,7 @@ echo "   名稱: $THEME_NAME"
 echo "   Slug: $THEME_SLUG"
 echo "   版本: $THEME_VERSION"
 echo "   Text Domain: $TEXT_DOMAIN"
+echo "   類型: $THEME_TYPE theme"
 echo ""
 
 read -p "✅ 確認資訊正確? [Y/n] " -n 1 -r
@@ -155,7 +158,12 @@ fi
 # 8. 建立 phpstan.neon（既有則詢問，無佔位符直接複製）。
 echo -e "${BLUE}🔬 建立 PHPStan 設定...${NC}"
 if prompt_overwrite "phpstan.neon" "PHPStan 設定"; then
-    cp "$TEMPLATES_DIR/phpstan.neon.template" phpstan.neon
+    # Block theme 只有 functions.php 需要掃描，classic 另掃 inc/ 與 template-parts/。
+    if [ "$THEME_TYPE" = "block" ]; then
+        cp "$TEMPLATES_DIR/block/phpstan.neon.template" phpstan.neon
+    else
+        cp "$TEMPLATES_DIR/phpstan.neon.template" phpstan.neon
+    fi
     echo -e "${GREEN}    ✓ phpstan.neon 已建立${NC}"
 else
     echo -e "${YELLOW}    跳過 phpstan.neon${NC}"
@@ -327,7 +335,7 @@ fi
 # 完成。
 echo ""
 echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}✅ WordPress 傳統主題開發環境初始化完成!${NC}"
+echo -e "${GREEN}✅ WordPress 佈景主題開發環境初始化完成!${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
 echo -e "${GREEN}📦 已設定:${NC}"
