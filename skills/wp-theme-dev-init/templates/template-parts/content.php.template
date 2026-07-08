@@ -1,0 +1,60 @@
+<?php
+/**
+ * Template part for displaying a single post in a loop.
+ *
+ * @package {{THEME_NAME}}
+ */
+
+?>
+<article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
+	<header class="entry-header">
+		<?php
+		if ( is_singular() ) {
+			the_title( '<h1 class="entry-title">', '</h1>' );
+		} else {
+			the_title( '<h2 class="entry-title"><a href="' . esc_url( get_permalink() ) . '" rel="bookmark">', '</a></h2>' );
+		}
+
+		if ( 'post' === get_post_type() ) :
+			?>
+			<div class="entry-meta">
+				<?php
+				printf(
+					/* translators: %s: post date. */
+					esc_html__( 'Posted on %s', '{{TEXT_DOMAIN}}' ),
+					'<time datetime="' . esc_attr( get_the_date( DATE_W3C ) ) . '">' . esc_html( get_the_date() ) . '</time>'
+				);
+				?>
+			</div><!-- .entry-meta -->
+		<?php endif; ?>
+	</header><!-- .entry-header -->
+
+	<?php if ( has_post_thumbnail() && ! is_singular() ) : ?>
+		<div class="post-thumbnail">
+			<a href="<?php the_permalink(); ?>" aria-hidden="true" tabindex="-1">
+				<?php the_post_thumbnail( 'large' ); ?>
+			</a>
+		</div><!-- .post-thumbnail -->
+	<?php endif; ?>
+
+	<div class="entry-content">
+		<?php
+		if ( is_singular() ) {
+			the_content();
+
+			wp_link_pages(
+				array(
+					'before' => '<div class="page-links">' . esc_html__( 'Pages:', '{{TEXT_DOMAIN}}' ),
+					'after'  => '</div>',
+				)
+			);
+		} else {
+			the_excerpt();
+		}
+		?>
+	</div><!-- .entry-content -->
+
+	<footer class="entry-footer">
+		<?php the_tags( '<span class="tags-links">', ', ', '</span>' ); ?>
+	</footer><!-- .entry-footer -->
+</article><!-- #post-<?php the_ID(); ?> -->

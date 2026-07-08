@@ -16,8 +16,8 @@ Execute development tasks defined in a spec file.
 ## Syntax
 
 ```bash
-# Execute tasks from a specific spec file
-/todo spec/booking-system/user-registration.md
+# Execute tasks from a specific spec file (numbered by build order)
+/todo spec/booking-system/01-user-registration.md
 
 # Execute from overview
 /todo spec/booking-system/overview.md

@@ -1,0 +1,40 @@
+<?php
+/**
+ * Sample test case for the {{THEME_NAME}} theme.
+ *
+ * @package {{THEME_NAME}}
+ */
+
+/**
+ * Confirms the theme loads and registers its features in the test environment.
+ */
+class Sample_Test extends WP_UnitTestCase {
+
+	/**
+	 * The theme under test should be the active theme.
+	 *
+	 * @return void
+	 */
+	public function test_theme_is_active() {
+		$this->assertSame( basename( dirname( __DIR__ ) ), get_option( 'stylesheet' ) );
+	}
+
+	/**
+	 * The setup routine should register the primary navigation menu.
+	 *
+	 * @return void
+	 */
+	public function test_primary_menu_registered() {
+		$menus = get_registered_nav_menus();
+		$this->assertArrayHasKey( 'primary', $menus );
+	}
+
+	/**
+	 * The theme should declare support for post thumbnails.
+	 *
+	 * @return void
+	 */
+	public function test_post_thumbnails_supported() {
+		$this->assertTrue( current_theme_supports( 'post-thumbnails' ) );
+	}
+}

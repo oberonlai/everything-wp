@@ -1,0 +1,104 @@
+<?php
+/**
+ * Theme setup — registers theme support, menus, text domain and widgets.
+ *
+ * @package {{THEME_NAME}}
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+if ( ! function_exists( '{{FUNCTION_PREFIX}}_setup' ) ) {
+	/**
+	 * Set up theme defaults and register support for various WordPress features.
+	 *
+	 * Hooked to after_setup_theme so the features are registered before init.
+	 *
+	 * @return void
+	 */
+	function {{FUNCTION_PREFIX}}_setup() {
+		// Make the theme available for translation.
+		load_theme_textdomain( '{{TEXT_DOMAIN}}', get_template_directory() . '/languages' );
+
+		// Add default posts and comments RSS feed links to the document head.
+		add_theme_support( 'automatic-feed-links' );
+
+		// Let WordPress manage the document <title>.
+		add_theme_support( 'title-tag' );
+
+		// Enable featured images on posts and pages.
+		add_theme_support( 'post-thumbnails' );
+
+		// Output valid HTML5 markup for core features.
+		add_theme_support(
+			'html5',
+			array(
+				'search-form',
+				'comment-form',
+				'comment-list',
+				'gallery',
+				'caption',
+				'style',
+				'script',
+			)
+		);
+
+		// Enable the custom logo feature in the Customizer.
+		add_theme_support(
+			'custom-logo',
+			array(
+				'height'      => 100,
+				'width'       => 300,
+				'flex-height' => true,
+				'flex-width'  => true,
+			)
+		);
+
+		// Let embedded media scale to fit its container.
+		add_theme_support( 'responsive-embeds' );
+
+		// Register navigation menu locations.
+		register_nav_menus(
+			array(
+				'primary' => esc_html__( 'Primary Menu', '{{TEXT_DOMAIN}}' ),
+				'footer'  => esc_html__( 'Footer Menu', '{{TEXT_DOMAIN}}' ),
+			)
+		);
+	}
+}
+add_action( 'after_setup_theme', '{{FUNCTION_PREFIX}}_setup' );
+
+if ( ! function_exists( '{{FUNCTION_PREFIX}}_content_width' ) ) {
+	/**
+	 * Set the content width in pixels, based on the theme's design and stylesheet.
+	 *
+	 * @return void
+	 */
+	function {{FUNCTION_PREFIX}}_content_width() {
+		$GLOBALS['content_width'] = apply_filters( '{{FUNCTION_PREFIX}}_content_width', 1200 );
+	}
+}
+add_action( 'after_setup_theme', '{{FUNCTION_PREFIX}}_content_width', 0 );
+
+if ( ! function_exists( '{{FUNCTION_PREFIX}}_widgets_init' ) ) {
+	/**
+	 * Register the theme's widget area.
+	 *
+	 * @return void
+	 */
+	function {{FUNCTION_PREFIX}}_widgets_init() {
+		register_sidebar(
+			array(
+				'name'          => esc_html__( 'Sidebar', '{{TEXT_DOMAIN}}' ),
+				'id'            => 'sidebar-1',
+				'description'   => esc_html__( 'Add widgets here.', '{{TEXT_DOMAIN}}' ),
+				'before_widget' => '<section id="%1$s" class="widget %2$s">',
+				'after_widget'  => '</section>',
+				'before_title'  => '<h2 class="widget-title">',
+				'after_title'   => '</h2>',
+			)
+		);
+	}
+}
+add_action( 'widgets_init', '{{FUNCTION_PREFIX}}_widgets_init' );

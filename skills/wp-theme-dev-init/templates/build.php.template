@@ -1,0 +1,108 @@
+<?php
+/**
+ * WordPress Theme Build Script.
+ *
+ * Creates a distributable ZIP of the theme, excluding development files.
+ * The theme has no runtime Composer dependencies, so nothing is installed here.
+ */
+
+// Color output.
+define( 'GREEN', "\033[0;32m" );
+define( 'BLUE', "\033[0;34m" );
+define( 'RED', "\033[0;31m" );
+define( 'NC', "\033[0m" ); // No Color.
+
+echo BLUE . "========================================" . NC . PHP_EOL;
+echo BLUE . "Building theme release..." . NC . PHP_EOL;
+echo BLUE . "========================================" . NC . PHP_EOL;
+
+$themeSlug = '{{THEME_SLUG}}';
+$buildDir  = 'build';
+$tempDir   = "{$buildDir}/{$themeSlug}";
+
+// Read the version from the style.css header.
+$version = 'v1.0.0';
+if ( file_exists( 'style.css' ) ) {
+	$content = file_get_contents( 'style.css' );
+	if ( preg_match( '/Version:\s*(.+)/i', $content, $matches ) ) {
+		$raw = trim( $matches[1] );
+		// Add a v prefix if the header value does not already have one.
+		$version = ( strpos( $raw, 'v' ) === 0 ) ? $raw : 'v' . $raw;
+	}
+}
+
+echo GREEN . "Theme:" . NC . " {$themeSlug}" . PHP_EOL;
+echo GREEN . "Version:" . NC . " {$version}" . PHP_EOL;
+echo PHP_EOL;
+
+// Clean any previous build output.
+echo BLUE . "Cleaning old build files..." . NC . PHP_EOL;
+if ( is_dir( $buildDir ) ) {
+	exec( "rm -rf {$buildDir}" );
+}
+mkdir( $buildDir, 0755, true );
+mkdir( $tempDir, 0755, true );
+
+// Files and directories that must never ship in the release ZIP.
+$excludes = array(
+	'.git',
+	'.github',
+	'.gitignore',
+	'.phpcs.xml.dist',
+	'.phpcs.cache',
+	'phpstan.neon',
+	'phpunit.xml.dist',
+	'phpunit.xml',
+	'.phpunit.result.cache',
+	'tests',
+	'bin',
+	'node_modules',
+	'build',
+	'vendor',
+	'composer.json',
+	'composer.lock',
+	'*.sh',
+	'CLAUDE.md',
+	'.claude',
+	'scripts',
+	// Local environment configs (wp-env / DDEV) — never ship in the release ZIP.
+	'.wp-env.json',
+	'.wp-env.override.json',
+	'.wp-env',
+	'.ddev',
+	'local-config.php',
+);
+
+// Build the rsync exclude parameters.
+$excludeParams = array_map(
+	function ( $item ) {
+		return "--exclude='{$item}'";
+	},
+	$excludes
+);
+$excludeString = implode( ' ', $excludeParams );
+
+// Copy the theme files into the staging directory.
+echo BLUE . "Copying theme files..." . NC . PHP_EOL;
+exec( "rsync -av {$excludeString} . {$tempDir}/" );
+
+// Create the ZIP file.
+$zipFile = "{$buildDir}/{$themeSlug}-{$version}.zip";
+echo BLUE . "Creating ZIP file..." . NC . PHP_EOL;
+exec( "cd {$buildDir} && zip -r {$themeSlug}-{$version}.zip {$themeSlug} -q" );
+
+// Remove the staging directory.
+echo BLUE . "Cleaning temp files..." . NC . PHP_EOL;
+exec( "rm -rf {$tempDir}" );
+
+// Report the resulting file size.
+$fileSize      = filesize( $zipFile );
+$fileSizeHuman = round( $fileSize / 1024 / 1024, 2 ) . 'MB';
+
+echo PHP_EOL;
+echo GREEN . "========================================" . NC . PHP_EOL;
+echo GREEN . "✓ Build complete!" . NC . PHP_EOL;
+echo GREEN . "========================================" . NC . PHP_EOL;
+echo GREEN . "File location:" . NC . " {$zipFile}" . PHP_EOL;
+echo GREEN . "File size:" . NC . " {$fileSizeHuman}" . PHP_EOL;
+echo PHP_EOL;

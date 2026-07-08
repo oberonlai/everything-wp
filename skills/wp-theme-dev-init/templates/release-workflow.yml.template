@@ -1,4 +1,4 @@
-name: Test and Release
+name: QA, Test and Release
 
 on:
   push:
@@ -6,47 +6,9 @@ on:
       - 'v*.*.*'
 
 jobs:
-  test:
-    name: Run Tests
+  qa:
+    name: Coding Standards & Static Analysis
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php-version: ['8.2', '8.0', '7.4']
-    services:
-      database:
-        image: mysql:latest
-        env:
-          MYSQL_DATABASE: wordpress_tests
-          MYSQL_ROOT_PASSWORD: root
-        ports:
-          - 3306:3306
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          tools: phpunit-polyfills:1.1
-
-      - name: Install dependencies
-        run: composer install
-
-      - name: Install Subversion
-        run: sudo apt-get update && sudo apt-get install -y subversion
-
-      - name: Setup tests
-        run: bash bin/install-wp-tests.sh wordpress_tests root root 127.0.0.1 latest true
-
-      - name: Run tests
-        run: composer test
-
-  release:
-    name: Build and Release
-    needs: test
-    runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -57,63 +19,113 @@ jobs:
           php-version: '8.2'
           tools: composer
 
-      - name: Get plugin version
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHP_CodeSniffer
+        run: composer phpcs
+
+      - name: Run PHPStan
+        run: composer phpstan
+
+  test:
+    name: PHPUnit
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.2', '8.0']
+    services:
+      database:
+        image: mysql:latest
+        env:
+          MYSQL_DATABASE: wordpress_test
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Install Subversion
+        run: sudo apt-get update && sudo apt-get install -y subversion
+
+      - name: Install WordPress test suite
+        run: bash bin/install-wp-tests.sh wordpress_test root root 127.0.0.1 latest true
+
+      - name: Run tests
+        run: composer test
+
+  release:
+    name: Build and Release
+    needs: [qa, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get theme version
         id: version
         run: |
-          VERSION=$(grep "Version:" *.php | head -1 | awk '{print $2}' | tr -d '\r')
-          # Add v prefix if not present
+          VERSION=$(grep -i "Version:" style.css | head -1 | awk -F: '{print $2}' | tr -d ' \r')
+          # Add v prefix if not present.
           if [[ ! $VERSION =~ ^v ]]; then
             VERSION="v${VERSION}"
           fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Plugin Version: ${VERSION}"
-
-      - name: Install production dependencies
-        run: composer install --no-dev --optimize-autoloader --no-interaction
+          echo "Theme Version: ${VERSION}"
 
       - name: Create build directory
-        run: |
-          mkdir -p build/{{PLUGIN_NAME}}
-          
-      - name: Copy plugin files
+        run: mkdir -p build/{{THEME_SLUG}}
+
+      - name: Copy theme files
         run: |
           rsync -av \
             --exclude='.git' \
             --exclude='.github' \
             --exclude='.gitignore' \
             --exclude='.phpcs.xml.dist' \
-            --exclude='.phpunit.result.cache' \
-            --exclude='node_modules' \
-            --exclude='tests' \
-            --exclude='bin' \
-            --exclude='build' \
-            --exclude='composer.json' \
-            --exclude='composer.lock' \
+            --exclude='.phpcs.cache' \
+            --exclude='phpstan.neon' \
             --exclude='phpunit.xml.dist' \
             --exclude='phpunit.xml' \
+            --exclude='.phpunit.result.cache' \
+            --exclude='tests' \
+            --exclude='bin' \
+            --exclude='node_modules' \
+            --exclude='build' \
+            --exclude='vendor' \
+            --exclude='composer.json' \
+            --exclude='composer.lock' \
             --exclude='*.sh' \
             --exclude='CLAUDE.md' \
-            --exclude='TESTING.md' \
-            --exclude='RELEASE.md' \
             --exclude='.claude' \
-            --exclude='.kiro' \
-            --exclude='.tinkersan' \
-            --exclude='.playwright-mcp' \
             --exclude='scripts' \
-            --exclude='.agent' \
             --exclude='.wp-env.json' \
             --exclude='.wp-env.override.json' \
             --exclude='.wp-env' \
             --exclude='.ddev' \
             --exclude='local-config.php' \
-            . build/{{PLUGIN_NAME}}/
+            . build/{{THEME_SLUG}}/
 
       - name: Create ZIP file
         run: |
           cd build
-          zip -r {{PLUGIN_NAME}}-${{ steps.version.outputs.version }}.zip {{PLUGIN_NAME}}
+          zip -r {{THEME_SLUG}}-${{ steps.version.outputs.version }}.zip {{THEME_SLUG}}
           cd ..
-          
+
       - name: Generate changelog
         id: changelog
         run: |
@@ -133,20 +145,17 @@ jobs:
           name: Release ${{ steps.version.outputs.version }}
           body: |
             ## 🎉 Version ${{ steps.version.outputs.version }}
-            
+
             ### 📝 Changes
             ${{ steps.changelog.outputs.changelog }}
-            
+
             ### 📦 Installation
-            1. Download `{{PLUGIN_NAME}}-${{ steps.version.outputs.version }}.zip` below
-            2. Go to WordPress Admin > Plugins > Add New > Upload Plugin
+            1. Download `{{THEME_SLUG}}-${{ steps.version.outputs.version }}.zip` below
+            2. Go to WordPress Admin > Appearance > Themes > Add New > Upload Theme
             3. Select the downloaded ZIP file and install
-            4. Activate the plugin
-            
-            ### ✅ Included Dependencies
-            - Production dependencies only (no dev tools)
+            4. Activate the theme
           files: |
-            build/{{PLUGIN_NAME}}-${{ steps.version.outputs.version }}.zip
+            build/{{THEME_SLUG}}-${{ steps.version.outputs.version }}.zip
           draft: false
           prerelease: false
         env:

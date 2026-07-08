@@ -1,0 +1,37 @@
+<?php
+/**
+ * The footer for the theme — renders the site footer and closes the document.
+ *
+ * @package {{THEME_NAME}}
+ */
+
+?>
+	<footer id="colophon" class="site-footer">
+		<nav class="footer-navigation" aria-label="<?php esc_attr_e( 'Footer', '{{TEXT_DOMAIN}}' ); ?>">
+			<?php
+			wp_nav_menu(
+				array(
+					'theme_location' => 'footer',
+					'menu_id'        => 'footer-menu',
+					'container'      => false,
+					'depth'          => 1,
+				)
+			);
+			?>
+		</nav>
+
+		<div class="site-info">
+			<?php
+			printf(
+				/* translators: %s: year and site name. */
+				esc_html__( '&copy; %s. All rights reserved.', '{{TEXT_DOMAIN}}' ),
+				esc_html( gmdate( 'Y' ) . ' ' . get_bloginfo( 'name' ) )
+			);
+			?>
+		</div><!-- .site-info -->
+	</footer><!-- #colophon -->
+</div><!-- #page -->
+
+<?php wp_footer(); ?>
+</body>
+</html>

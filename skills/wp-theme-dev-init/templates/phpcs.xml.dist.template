@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<ruleset name="WordPress Theme Coding Standards">
+	<description>Coding standards for the {{THEME_NAME}} theme.</description>
+
+	<file>.</file>
+
+	<!-- Directories that are not theme source or are compiled/vendored output. -->
+	<exclude-pattern>/vendor/*</exclude-pattern>
+	<exclude-pattern>/node_modules/*</exclude-pattern>
+	<exclude-pattern>/build/*</exclude-pattern>
+	<exclude-pattern>/assets/*</exclude-pattern>
+	<exclude-pattern>/languages/*</exclude-pattern>
+	<exclude-pattern>/scripts/*</exclude-pattern>
+	<exclude-pattern>/tests/*</exclude-pattern>
+	<exclude-pattern>/bin/*</exclude-pattern>
+	<exclude-pattern>/.claude/*</exclude-pattern>
+	<!-- Local env configs (wp-env / DDEV) — not part of theme source. -->
+	<exclude-pattern>/.wp-env/*</exclude-pattern>
+	<exclude-pattern>/.ddev/*</exclude-pattern>
+
+	<arg value="sp"/>
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="8"/>
+
+	<!-- Check PHP cross-version compatibility down to the theme's minimum. -->
+	<config name="testVersion" value="{{REQUIRES_PHP}}-"/>
+	<rule ref="PHPCompatibilityWP"/>
+
+	<!-- WordPress Coding Standards (Core, Docs, Extra). -->
+	<config name="minimum_wp_version" value="{{REQUIRES_WP}}"/>
+	<rule ref="WordPress"/>
+
+	<!-- Enforce the theme text domain for all translation functions. -->
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="{{TEXT_DOMAIN}}"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Require the theme prefix on all global functions, classes and constants. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="{{FUNCTION_PREFIX}}"/>
+				<element value="{{CONST_PREFIX}}"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>

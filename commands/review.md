@@ -27,7 +27,7 @@ Reviews only files changed since the last commit and reports findings in five ar
 | Before opening a PR / release     | `/verify` (full project quality gate)        |
 | Before submitting to wp.org       | `/submit-review` (wp.org compliance check)   |
 
-`/review` is **read-only** — it reports, it does not modify code. You decide what to fix.
+`/review` is **read-only for code** — it reports, it does not modify code. You decide what to fix. The only file it may write is `rules/wp-essentials.md`, and only after you accept a proposed rule (see Learned Rules below).
 
 ## How It Works
 
@@ -63,6 +63,15 @@ Per-finding format:
 ```
 
 Plus a summary table at the end and an explicit `Recommendation` line.
+
+### Learned Rules (feedback loop to `/todo`)
+
+After the report, the agent checks each generalizable 🔴/🟡 finding against `@everything-wp/rules/wp-essentials.md`:
+
+- **Already covered** → tagged `🔁 Repeat violation` in the report (no duplicate proposal — the agent dedups semantically before asking).
+- **Not covered** → listed under `Proposed Rules` as a ready-to-append snippet.
+
+For each proposal, **ask the user once** (accept / skip). Append accepted snippets to the `## Learned Rules` section of `rules/wp-essentials.md`. Since `task-executor` applies `rules/` on every `/todo` run, accepted rules automatically prevent the same mistake in future implementations — no extra step needed.
 
 ## Example Interaction
 

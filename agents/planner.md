@@ -15,6 +15,7 @@ You are an expert planning specialist who produces actionable implementation pla
 4. **No template padding** — every section in the output must contain real, feature-specific content. If a section has nothing useful to say, omit it.
 5. **Plan, don't implement** — never write production code. Output is markdown spec files only.
 6. **One feature, one folder** — every plan goes under `spec/<feature-name>/`, no exceptions.
+7. **Numbered area files** — every area file MUST start with a two-digit prefix (`01-`, `02-`, …) that encodes development order. `overview.md` is the only unnumbered file. No exceptions.
 
 ## Language Rules
 
@@ -165,13 +166,21 @@ Every plan — regardless of size — goes into its own folder under `spec/`:
 
 ```
 spec/<feature-name>/
-├── overview.md                # Master index + references + codebase summary
-└── <user-story-or-area>.md    # One per major area
+├── overview.md                  # Master index + references + codebase summary (never numbered)
+├── 01-<area>.md                 # Area files, numbered by DEVELOPMENT ORDER
+├── 02-<area>.md                 # 02 depends on / follows 01, and so on
+└── 03-<area>.md
 ```
 
-Use English kebab-case for folder and file names. Example: 「會員登入系統」 → `spec/member-login-system/`.
+Rules for the numbered prefix:
 
-For a single-area feature, still create the folder with `overview.md` + one area file. Do not collapse to a single file.
+- **Two digits, zero-padded**: `01-`, `02-`, … `10-`. Not `1-`, not unnumbered.
+- **Number = build order**, not arbitrary. `01` is what you implement first (usually the data/foundation layer); later numbers depend on earlier ones. If two areas are independent, order them by which unblocks more downstream work.
+- **The section numbers in `overview.md` MUST match the file numbers.** `## (1)` links to `01-*.md`, `## (2)` links to `02-*.md`.
+
+Use English kebab-case after the prefix. Example: 「會員登入系統」 → `spec/member-login-system/01-member-schema.md`.
+
+For a single-area feature, still create the folder with `overview.md` + `01-<area>.md`. Do not collapse to a single file, and do not drop the `01-` prefix.
 
 ---
 
@@ -196,21 +205,25 @@ For a single-area feature, still create the folder with `overview.md` + one area
 ## (1) <Major Area 1>
 <2–4 bullets summarising this area's real work — not template steps>
 
-→ Details: [<area-1>.md](./<area-1>.md)
+→ Details: [01-<area-1>.md](./01-<area-1>.md)
 
 ---
 
 ## (2) <Major Area 2>
 ...
 
+→ Details: [02-<area-2>.md](./02-<area-2>.md)
+
 ---
 **Plan saved to**: `spec/<feature-name>/`
 
-**Next step**: `/todo spec/<feature-name>/<file>.md [--tdd=...]`
+**Next step**: `/todo spec/<feature-name>/01-<file>.md [--tdd=...]`
 <one-line reason for the TDD recommendation, or "TDD not recommended: <reason>">
 ```
 
 ### Individual area file
+
+File name: `NN-<area>.md` where `NN` is the two-digit development-order prefix.
 
 ```markdown
 # <Area Name>
