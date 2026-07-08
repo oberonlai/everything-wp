@@ -1,0 +1,25 @@
+<?php
+/**
+ * Server-side render for the {{BLOCK_TITLE}} block.
+ *
+ * Available variables: $attributes, $content, $block.
+ * All visual values come from theme.json tokens via CSS — never inline here.
+ *
+ * @package {{THEME_NAME}}
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+$variant = ( isset( $attributes['variant'] ) ) ? $attributes['variant'] : 'default';
+
+$wrapper_attributes = get_block_wrapper_attributes(
+	array(
+		'class' => 'wp-block-{{THEME_SLUG}}-{{BLOCK_SLUG}}--' . sanitize_html_class( $variant ),
+	)
+);
+?>
+<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by get_block_wrapper_attributes(). ?>>
+	<?php // Component markup goes here — BEM elements, esc_* on every output. ?>
+</div>

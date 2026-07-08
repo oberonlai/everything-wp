@@ -52,7 +52,8 @@ Add the skills path to your configuration.
 | Command | Description |
 |---------|-------------|
 | `/init-plugin` | Initialize plugin development environment with testing suite, GitHub Actions, and build scripts |
-| `/init-theme` | Initialize a classic theme with template hierarchy, PHPCS, PHPStan, PHPUnit, i18n, GitHub Actions, and build scripts |
+| `/init-theme` | Initialize a classic or block theme with templates, PHPCS, PHPStan, PHPUnit, i18n, GitHub Actions, and build scripts |
+| `/make-block` | Turn a reference URL or design mockups into a block theme design system — theme.json tokens, dynamic blocks, and a UI library review page |
 | `/custom-table` | Generate custom database table with Repository class for CRUD operations |
 | `/list-table` | Generate WP_List_Table class for admin data display |
 | `/option-page` | Generate WordPress settings page using Settings API |
@@ -331,7 +332,8 @@ everything-wp/
 │   │   ├── templates/
 │   │   └── scripts/
 │   │
-│   └── wp-theme-dev-init/   # Classic theme initialization
+│   ├── wp-theme-dev-init/   # Theme initialization (classic & block)
+│   └── wp-block-theme-pipeline/ # URL → block theme design system pipeline
 │       ├── SKILL.md
 │       ├── templates/
 │       └── scripts/

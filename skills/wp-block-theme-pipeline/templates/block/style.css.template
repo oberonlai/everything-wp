@@ -1,0 +1,13 @@
+/*
+ * {{BLOCK_TITLE}} — component CSS.
+ * Token-only styling: every color/size/spacing references a theme.json
+ * preset (var(--wp--preset--*)). Hard-coded hex/px values fail the audit.
+ */
+
+.wp-block-{{THEME_SLUG}}-{{BLOCK_SLUG}} {
+	color: var(--wp--preset--color--contrast);
+}
+
+/* Variant modifier example. */
+.wp-block-{{THEME_SLUG}}-{{BLOCK_SLUG}}--default {
+}

@@ -1,0 +1,21 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "{{THEME_SLUG}}/{{BLOCK_SLUG}}",
+	"title": "{{BLOCK_TITLE}}",
+	"category": "theme",
+	"description": "{{BLOCK_DESCRIPTION}}",
+	"textdomain": "{{TEXT_DOMAIN}}",
+	"attributes": {
+		"variant": {
+			"type": "string",
+			"default": "default"
+		}
+	},
+	"supports": {
+		"html": false
+	},
+	"editorScript": "file:./build/index.js",
+	"style": "file:./style.css",
+	"render": "file:./render.php"
+}

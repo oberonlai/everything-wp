@@ -1,0 +1,32 @@
+<?php
+/**
+ * Register every dynamic block shipped by the theme.
+ *
+ * Blocks live in blocks/<slug>/ with their block.json; built editor assets
+ * land in build/blocks/<slug>/ via @wordpress/scripts. Add this snippet to
+ * functions.php (or require it from there).
+ *
+ * @package {{THEME_NAME}}
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+/**
+ * Register all theme blocks from their block.json manifests.
+ *
+ * @return void
+ */
+function {{FUNCTION_PREFIX}}_register_blocks() {
+	$manifests = glob( get_template_directory() . '/build/blocks/*/block.json' );
+
+	if ( false === $manifests ) {
+		return;
+	}
+
+	foreach ( $manifests as $manifest ) {
+		register_block_type( dirname( $manifest ) );
+	}
+}
+add_action( 'init', '{{FUNCTION_PREFIX}}_register_blocks' );

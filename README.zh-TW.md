@@ -52,7 +52,8 @@ cp -r everything-wp/* ~/.claude/
 | 指令 | 說明 |
 |------|------|
 | `/init-plugin` | 初始化外掛開發環境，包含測試套件、GitHub Actions 與 build 腳本 |
-| `/init-theme` | 初始化傳統佈景主題，含模板階層、PHPCS、PHPStan、PHPUnit、i18n、GitHub Actions 與 build 腳本 |
+| `/init-theme` | 初始化傳統或區塊佈景主題，含模板、PHPCS、PHPStan、PHPUnit、i18n、GitHub Actions 與 build 腳本 |
+| `/make-block` | 把參考網址或設計稿圖片變成區塊主題設計系統 — theme.json token、動態區塊、UI 元件庫檢查頁 |
 | `/custom-table` | 產生自訂資料表，附帶 Repository 類別處理 CRUD |
 | `/list-table` | 產生 WP_List_Table 類別，用於後台資料顯示 |
 | `/option-page` | 透過 Settings API 產生 WordPress 設定頁 |
@@ -331,7 +332,8 @@ everything-wp/
 │   │   ├── templates/
 │   │   └── scripts/
 │   │
-│   └── wp-theme-dev-init/   # 傳統主題初始化
+│   ├── wp-theme-dev-init/   # 主題初始化（傳統與區塊）
+│   └── wp-block-theme-pipeline/ # 網址 → 區塊主題設計系統產線
 │       ├── SKILL.md
 │       ├── templates/
 │       └── scripts/
