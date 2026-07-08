@@ -79,6 +79,7 @@ cp -r everything-wp/* ~/.claude/
 | `/todo` | 依 spec 檔執行開發任務。支援 `--tdd`、`--tdd=unit`、`--tdd=int` 進行 Red-Green-Refactor |
 | `/review` | 對目前 diff 進行資深工程師等級的審查（Security、Performance、Simplification、Test gap、i18n），可將通用性缺失提案為 `rules/wp-essentials.md` 規則 |
 | `/submit-review` | 檢查外掛是否符合 WordPress.org 提交規範 |
+| `/release` | 同步所有檔案的版本號並 commit、tag、push，觸發 release workflow |
 
 ## 📚 Skills
 
