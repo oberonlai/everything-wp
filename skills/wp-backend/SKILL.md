@@ -23,6 +23,9 @@ Backend/server-side WordPress development including PHP coding standards, archit
 ### Deployment
 - **[WordPress.org Submission](./org-submission.md)** - Plugin submission process and requirements
 
+### Templates
+- **[Custom Post Type](./templates/cpt.php.template)** - CPT registration class locking in project conventions (i18n labels, activation-only rewrite flush, `show_in_rest`). No dedicated command — use this template directly when a task involves registering a post type.
+
 ## When to Use
 
 Use this skill when working on:
