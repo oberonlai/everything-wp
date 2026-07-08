@@ -85,6 +85,18 @@ Goal: **focused recon, not full repo exploration**. Limit scope to `src/` and mo
 | AJAX                           | One existing AJAX handler, check nonce + capability pattern               |
 | Options / Transients           | Existing wrapper class if any (don't reinvent)                            |
 
+#### Skill auto-detection
+
+Check the project for these signals and read the matching skill doc from
+`@everything-wp/skills/` before implementing — the spec may not mention them:
+
+| Project signal                                            | Auto-load skill    |
+|-----------------------------------------------------------|--------------------|
+| `theme.json` + `templates/*.html` (block theme)           | `wp-block-themes`  |
+| `style.css` with `Theme Name:` header, no `templates/*.html` (classic theme) | `wp-frontend` |
+| Plugin main file (`Plugin Name:` header) / `src/` backend code | `wp-backend`  |
+| Task touches CSS/JS/Gutenberg blocks                      | `wp-frontend`      |
+
 #### Targeted searches
 
 Use `Grep` for specific lookups, not exploratory browsing:

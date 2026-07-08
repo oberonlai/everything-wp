@@ -35,6 +35,21 @@ When the user provides references in the prompt:
 
 Findings from references go into the **References** block of `overview.md` (see Output Structure). Do not invent details the references don't actually contain.
 
+### Skill auto-detection (in addition to user-mentioned `@skill-name`)
+
+Before Step 1, check the project for these signals and load the matching
+skill docs from `@everything-wp/skills/` — do not wait for the user to
+mention them:
+
+| Project signal                                            | Auto-load skill    |
+|-----------------------------------------------------------|--------------------|
+| `theme.json` + `templates/*.html` (block theme)           | `wp-block-themes`  |
+| `style.css` with `Theme Name:` header, no `templates/*.html` (classic theme) | `wp-frontend` |
+| Plugin main file (`Plugin Name:` header) / `src/` backend code | `wp-backend`  |
+| Feature touches CSS/JS/Gutenberg blocks                   | `wp-frontend`      |
+
+List auto-loaded skills in the **References** block alongside user-provided ones.
+
 ## Planning Process
 
 ### Execution Checklist
@@ -95,7 +110,8 @@ Skip Step 1 only if `src/` is empty (greenfield plugin).
 
 1. If user provided URL → `WebFetch` and extract patterns
 2. If user mentioned `@skill-name` → read the skill doc
-3. If neither → ask once, then proceed with general patterns
+3. Apply the skill auto-detection table (see Reference Loading) — load matching skills even if the user mentioned none
+4. If none of the above yields a reference → ask once, then proceed with general patterns
 
 Produce this summary (omit if no references):
 
