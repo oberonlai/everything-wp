@@ -1,5 +1,5 @@
 ---
-description: Create implementation plan using 4-layer task breakdown. WAIT for user CONFIRM before touching any code.
+description: Create implementation plan using 3-layer task breakdown. WAIT for user CONFIRM before touching any code.
 invokes_agent: planner
 ---
 
@@ -27,7 +27,17 @@ Create a comprehensive implementation plan before writing any code.
 
 ## Output
 
-Plan is saved to `spec/[feature-name].md` for future reference.
+Plan is saved to a per-feature folder under `spec/`:
+
+```
+spec/<feature-name>/
+├── overview.md        # Master index (never numbered)
+├── 01-<area>.md       # Area specs, numbered by development order
+├── 02-<area>.md
+└── 03-<area>.md
+```
+
+`overview.md` is the index; the numbered files encode the build sequence (`01` first).
 
 ## Related
 
