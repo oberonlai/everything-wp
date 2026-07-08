@@ -252,6 +252,14 @@ vendor/bin/phpstan analyse
 
 ---
 
+## Learned Rules
+
+Rules promoted from real `/review` and `/verify` findings — mistakes the AI actually made in this project. Appended only after human approval; deduped against all sections above before proposing. Each entry: `###` title, one-line rule, minimal ✅/❌ example, and origin (command + date).
+
+<!-- Accepted proposals are appended below this line. -->
+
+---
+
 ## Quick Checklist
 
 Before committing code:

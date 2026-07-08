@@ -38,6 +38,7 @@ Print before starting; tick each step as you finish.
 - [ ] Step 5 — Test Coverage Gap Review
 - [ ] Step 6 — i18n Review
 - [ ] Step 7 — Final Report
+- [ ] Step 8 — Learned-Rule Proposals
 ```
 
 ### Step 1: Collect Diff
@@ -52,7 +53,7 @@ For each file in the list, also collect the actual changes:
 git diff HEAD -- <file>
 ```
 
-If the diff is empty, stop and report `No changes to review`. Do not proceed to Steps 2–7.
+If the diff is empty, stop and report `No changes to review`. Do not proceed to Steps 2–8.
 
 For each subsequent step, **read the changed files in full** (not just the diff hunks) — context matters for security and perf review.
 
@@ -147,6 +148,21 @@ Severity guidance:
 
 ---
 
+### Step 8: Learned-Rule Proposals
+
+Close the feedback loop: mistakes found here should become rules that `/todo` reads before writing code (`task-executor` applies `@everything-wp/rules/` on every task).
+
+1. **Read `@everything-wp/rules/wp-essentials.md`** — the project's living rule file.
+2. For each 🔴 / 🟡 finding, decide whether it is **generalizable**: a mistake likely to recur in other features (e.g. missing nonce, unescaped echo, N+1 in a loop) — not one-off business logic.
+3. **Dedup semantically, not by string match**:
+   - **Already covered by an existing rule** → do NOT propose it again. Instead, tag the finding in the report with `🔁 Repeat violation: <rule section name>`. A repeat is a stronger signal than a new rule — the rule existed and was still violated — so list repeats prominently in the Summary.
+   - **Not covered** → emit a proposal in the `Proposed Rules` block (see Output Format), written in the same style as `wp-essentials.md`: a `###` title, a one-line rule, and a minimal ✅/❌ example (≤ 8 lines total).
+4. **Never write the rules file yourself** — you are read-only. The human confirms each proposal; the invoking command appends accepted ones.
+
+If no finding is generalizable, print `Proposed Rules: none`.
+
+---
+
 ## Output Format
 
 ```
@@ -209,6 +225,17 @@ i18n
 Recommendation:
 - If 🔴 > 0: fix Must-fix items before /verify or PR
 - If only 🟡 / 🔵: human's call — address now or backlog
+
+───────────────────────────────────────────────────
+Proposed Rules (new — not yet in rules/wp-essentials.md)
+───────────────────────────────────────────────────
+
+1. <### rule title + one-line rule + minimal ✅/❌ example, ready to append>
+
+🔁 Repeat violations (rule exists, still broken):
+- <finding> → violates "<rule section name>"
+
+(or: "Proposed Rules: none")
 
 Next step: re-run `/review` after fixes, or `/verify` for full release gate.
 ```

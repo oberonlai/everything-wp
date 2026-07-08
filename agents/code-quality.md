@@ -112,6 +112,14 @@ Execute all checks in sequence:
 
 4. **Generate report**
 
+5. **Learned-rule proposals** — close the feedback loop to `/todo`:
+   - Look for **recurring error patterns** across the three checks (same PHPStan error type in multiple places, same PHPCS sniff violated across files, test failures sharing one root cause). One-off errors are not rules — skip them.
+   - Read `@everything-wp/rules/wp-essentials.md` and **dedup semantically before asking**:
+     - Pattern already covered by an existing rule → report it as `🔁 Repeat violation: <rule section name>` (do not re-propose).
+     - Not covered → propose a rule in `wp-essentials.md` style (`###` title + one-line rule + minimal ✅/❌ example) and **ask the user once** (accept / skip).
+   - Append accepted proposals to the `## Learned Rules` section of `rules/wp-essentials.md`. `task-executor` applies `rules/` on every `/todo` run, so accepted rules prevent the same mistake next time.
+   - If nothing recurs, print `Proposed Rules: none`.
+
 ### Output Format
 
 ```

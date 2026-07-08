@@ -17,6 +17,7 @@ This command runs all code quality checks in sequence and generates a comprehens
 2. **PHPUnit** - Execute unit tests
 3. **PHPCS** - Check code style
 4. **Generate Report** - Summarize all results
+5. **Learned Rules** - Recurring error patterns are checked against `rules/wp-essentials.md`: already-covered patterns are reported as `🔁 Repeat violation`; new patterns are proposed as rules (you accept or skip each). Accepted rules land in the `## Learned Rules` section and are applied automatically on every future `/todo` run.
 
 ## When to Use
 
